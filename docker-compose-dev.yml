@@ -22,7 +22,9 @@ services:
     depends_on:
       - postgres
 
-  postgres:
+  postgres: 
+    ports:
+      - 5430:5432
     image: postgres
     environment:
       - POSTGRES_PASSWORD=password123
