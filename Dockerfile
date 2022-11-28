@@ -5,6 +5,7 @@ RUN apt-get update && apt-get upgrade -y
 RUN apt-get -y install g++ 
 RUN apt-get -y install python3-dev
 RUN apt-get -y install libpq-dev
+RUN apt-get -y install nano
 RUN apt-get -y install curl
 RUN curl https://sh.rustup.rs -sSf | sh -s -- -y --profile minimal
 WORKDIR /usr/src/app
