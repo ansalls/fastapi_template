@@ -3,6 +3,9 @@
         "autoflush",
         "conint",
         "isouter",
-        "passlib"
+        "ondelete",
+        "passlib",
+        "poolclass",
+        "repr"
     ]
 }

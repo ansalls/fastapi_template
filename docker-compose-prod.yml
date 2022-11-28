@@ -1,4 +1,4 @@
-version: "3"
+version: "3.0.0"
 services:
   api:
     image: sloppynetworks/fastapi-app
@@ -13,7 +13,6 @@ services:
       - SECRET_KEY=${SECRET_KEY}
       - ALGORITHM=${ALGORITHM}
       - ACCESS_TOKEN_EXPIRE_MINUTES=${ACCESS_TOKEN_EXPIRE_MINUTES}
-
     depends_on:
       - postgres
 
