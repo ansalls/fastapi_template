@@ -15,7 +15,6 @@ jobs:
       SECRET_KEY: ${{secrets.SECRET_KEY}}
       ALGORITHM: ${{secrets.ALGORITHM}}
       ACCESS_TOKEN_EXPIRE_MINUTES: ${{secrets.ACCESS_TOKEN_EXPIRE_MINUTES}}
-
     services:
       postgres:
         image: postgres
@@ -29,7 +28,6 @@ jobs:
           --health-interval 10s
           --health-timeout 5s
           --health-retries 5
-
     runs-on: ubuntu-latest
     steps:
       - name: pulling git repo
@@ -85,7 +83,6 @@ jobs:
           heroku_api_key: ${{secrets.HEROKU_API_KEY}}
           heroku_app_name: ${{secrets.HEROKU_APP_NAME}}
           heroku_email: ${{secrets.HEROKU_EMAIL}}
-
       - name: deploy to ubuntu server
         uses: appleboy/ssh-action@master
         with:
