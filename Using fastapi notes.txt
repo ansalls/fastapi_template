@@ -1,0 +1,58 @@
+notes:
+cd C:\Users\TonyS\OneDrive\Desktop\Code\fastapi
+Build and bring up service:
+docker compose -f docker-compose-dev.yml up
+
+Running app manually:
+uvicorn app.main:app --host 0.0.0.0 --port 8000
+
+Build w/o cache:
+docker compose -f docker-compose-dev.yml -p fastapi build --no-cache
+
+Postgres config moved to here:
+/usr/share/postgresql/{version}/
+/usr/share/postgresql/15/
+
+docker inspect 49e12bd5380acb0c0968afad9f41cc78ca42d3c8d64f82268ae717c53afa6c79 | grep IPAddress
+
+
+
+Restarting postgres:
+pg_ctl restart (for some reason it doesn't seem to come back up after running this in docker...)
+
+[+] Building 78.1s (25/25) FINISHED
+ => [internal] load build definition from Dockerfile                                                               0.0s
+ => => transferring dockerfile: 32B                                                                                0.0s
+ => [internal] load .dockerignore                                                                                  0.0s
+ => => transferring context: 34B                                                                                   0.0s
+ => [internal] load metadata for docker.io/library/python:3.11-slim-bullseye                                       0.4s
+ => CACHED [ 1/20] FROM docker.io/library/python:3.11-slim-bullseye@sha256:1cd45c5dad845af18d71745c017325725dc979  0.0s
+ => [internal] load build context                                                                                  0.0s
+ => => transferring context: 6.79kB                                                                                0.0s
+ => [ 2/20] RUN echo "deb http://security.debian.org/debian-security bullseye-security main contrib non-free" >>   0.3s
+ => [ 3/20] RUN apt-get update && apt-get upgrade -y                                                               3.8s
+ => [ 4/20] RUN apt-get -y install g++                                                                            13.4s
+ => [ 5/20] RUN apt-get -y install python3-dev                                                                     5.5s
+ => [ 6/20] RUN apt-get -y install libpq-dev                                                                       1.7s
+ => [ 7/20] RUN apt-get -y install curl                                                                            1.6s
+ => [ 8/20] RUN curl https://sh.rustup.rs -sSf | sh -s -- -y --profile minimal                                    16.4s
+ => [ 9/20] WORKDIR /usr/src/app                                                                                   0.0s
+ => [10/20] COPY requirements.txt ./                                                                               0.0s
+ => [11/20] RUN pip install --no-cache-dir -r requirements.txt                                                    20.8s
+ => [12/20] RUN apt remove -y python3-dev                                                                          1.2s
+ => [13/20] RUN apt remove -y libtiff5                                                                             1.3s
+ => [14/20] RUN apt remove -y libsqlite3-0                                                                         1.6s
+ => [15/20] RUN apt remove -y libpq-dev # Makes libpq5 autoremovable, but that is still a PG runtime requirement   1.1s
+ => [16/20] RUN apt-get -y install libpq5 # Still need this, running to mark as manual install so it is not auto   0.9s
+ => [17/20] RUN apt remove -y curl                                                                                 1.0s
+ => [18/20] RUN apt-get purge -y --auto-remove -o APT::AutoRemove::RecommendsImportant=false                       3.2s
+ => [19/20] RUN rm -rf /var/lib/apt/lists/*                                                                        0.4s
+ => [20/20] COPY . .                                                                                               0.1s
+ => exporting to image                                                                                             3.1s
+ => => exporting layers                                                                                            3.1s
+ => => writing image sha256:673c9c254f5507db497da61360760163677c3a3c56ba8b9415a45427167b62b3                       0.0s
+ => => naming to docker.io/library/fastapi-api                                                                     0.0s
+ 
+ 
+Access API test page via:
+http://localhost:8000/docs
