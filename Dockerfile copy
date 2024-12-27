@@ -1,4 +1,4 @@
-FROM python:3.11-slim-bullseye
+FROM python:3.12.4-slim-bookworm
 RUN echo "deb http://security.debian.org/debian-security bullseye-security main contrib non-free" >> /etc/apt/sources.list
 RUN apt-get update && apt-get upgrade -y
 # RUN apt-get -y install cargo #sec vulns
@@ -8,9 +8,14 @@ RUN apt-get -y install libpq-dev
 RUN apt-get -y install nano
 RUN apt-get -y install curl
 RUN curl https://sh.rustup.rs -sSf | sh -s -- -y --profile minimal
+#RUN echo $(python3 -m site --user-base)
+#ENV PATH /home/${USERNAME}/.local/bin:${PATH}
+# ENV PATH="/root/.cargo/bin:${PATH}"
 WORKDIR /usr/src/app
 COPY requirements.txt ./
+SHELL [ "/bin/sh", "-s", ".", "$HOME/.cargo/env" ]
 RUN pip install --no-cache-dir -r requirements.txt
+#RUN pip install fastapi uvicorn
 #sec vulns
 RUN apt remove -y python3-dev
 RUN apt remove -y libtiff5
@@ -21,4 +26,5 @@ RUN apt remove -y curl
 RUN apt-get purge -y --auto-remove -o APT::AutoRemove::RecommendsImportant=false
 RUN rm -rf /var/lib/apt/lists/*
 COPY . .
-CMD ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000"]
+# CMD ["sh", "-c", "echo $HOME && echo $PATH && find ./ -name 'cargo'"]
+# CMD ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000"]
