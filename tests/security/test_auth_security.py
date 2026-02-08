@@ -26,19 +26,19 @@ def _forged_token(user_id: int) -> str:
 
 def test_expired_token_is_rejected(client, test_user):
     token = _expired_token(test_user["id"])
-    response = client.get("/posts/", headers={"Authorization": f"Bearer {token}"})
+    response = client.get("/api/v1/posts/", headers={"Authorization": f"Bearer {token}"})
     assert response.status_code == 401
 
 
 def test_forged_token_is_rejected(client, test_user):
     token = _forged_token(test_user["id"])
-    response = client.get("/posts/", headers={"Authorization": f"Bearer {token}"})
+    response = client.get("/api/v1/posts/", headers={"Authorization": f"Bearer {token}"})
     assert response.status_code == 401
 
 
 def test_malformed_authorization_header_is_rejected(client):
     response = client.get(
-        "/posts/",
+        "/api/v1/posts/",
         headers={"Authorization": "Token definitely-not-a-bearer-token"},
     )
     assert response.status_code == 401
@@ -46,7 +46,7 @@ def test_malformed_authorization_header_is_rejected(client):
 
 def test_login_resists_sql_injection_like_input(client):
     response = client.post(
-        "/login",
+        "/api/v1/login",
         data={
             "username": "' OR 1=1 --",
             "password": "' OR 1=1 --",
@@ -57,7 +57,7 @@ def test_login_resists_sql_injection_like_input(client):
 
 def test_create_user_does_not_echo_password_and_stores_hash(client, session):
     response = client.post(
-        "/users/",
+        "/api/v1/users/",
         json={"email": "security_hash_test@example.com", "password": "password123"},
     )
     assert response.status_code == 201
@@ -75,7 +75,7 @@ def test_create_user_does_not_echo_password_and_stores_hash(client, session):
 
 def test_allowed_cors_origin_is_returned(client):
     response = client.options(
-        "/posts/",
+        "/api/v1/posts/",
         headers={
             "Origin": "http://localhost:3000",
             "Access-Control-Request-Method": "GET",
@@ -87,7 +87,7 @@ def test_allowed_cors_origin_is_returned(client):
 
 def test_disallowed_cors_origin_is_not_allowed(client):
     response = client.options(
-        "/posts/",
+        "/api/v1/posts/",
         headers={
             "Origin": "https://evil.example",
             "Access-Control-Request-Method": "GET",

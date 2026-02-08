@@ -149,16 +149,16 @@ def test_e2e_user_auth_post_vote_flow(e2e_server):
     password = "password123"
 
     with httpx.Client(base_url=e2e_server, timeout=10) as client:
-        register = client.post("/users/", json={"email": email, "password": password})
+        register = client.post("/api/v1/users/", json={"email": email, "password": password})
         assert register.status_code == 201
 
-        login = client.post("/login", data={"username": email, "password": password})
+        login = client.post("/api/v1/login", data={"username": email, "password": password})
         assert login.status_code == 200
         token = login.json()["access_token"]
 
         auth_headers = {"Authorization": f"Bearer {token}"}
         created_post = client.post(
-            "/posts/",
+            "/api/v1/posts/",
             json={"title": "e2e post", "content": "full stack verification"},
             headers=auth_headers,
         )
@@ -166,13 +166,13 @@ def test_e2e_user_auth_post_vote_flow(e2e_server):
         post_id = created_post.json()["id"]
 
         vote = client.post(
-            "/vote/",
+            "/api/v1/vote/",
             json={"post_id": post_id, "dir": 1},
             headers=auth_headers,
         )
         assert vote.status_code == 201
 
-        single_post = client.get(f"/posts/{post_id}", headers=auth_headers)
+        single_post = client.get(f"/api/v1/posts/{post_id}", headers=auth_headers)
         assert single_post.status_code == 200
         payload = single_post.json()
         assert payload["Post"]["id"] == post_id

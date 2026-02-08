@@ -49,6 +49,12 @@ class Settings(BaseSettings):
     sentry_environment: str = "development"
     sentry_traces_sample_rate: float = 0.0
 
+    # Outbox/worker reliability controls
+    outbox_dispatch_batch_size: int = 100
+    outbox_retry_max_attempts: int = 5
+    outbox_retry_backoff_seconds: int = 30
+    outbox_dispatch_interval_seconds: int = 15
+
     # CORS
     cors_origins: list[str] = [
         "http://localhost:3000",

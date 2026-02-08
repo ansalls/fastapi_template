@@ -7,10 +7,10 @@ def test_openapi_exposes_expected_core_paths(client):
     schema = client.get("/openapi.json").json()
     paths = schema["paths"]
 
-    assert "/login" in paths
-    assert "/users/" in paths
-    assert "/posts/" in paths
-    assert "/vote/" in paths
+    assert "/api/v1/login" in paths
+    assert "/api/v1/users/" in paths
+    assert "/api/v1/posts/" in paths
+    assert "/api/v1/vote/" in paths
     assert "/health" in paths
     # Root is intentionally hidden from schema.
     assert "/" not in paths
@@ -25,7 +25,7 @@ def test_openapi_uses_bearer_security_scheme(client):
 
 def test_login_contract_requires_form_data(client):
     schema = client.get("/openapi.json").json()
-    login_post = schema["paths"]["/login"]["post"]
+    login_post = schema["paths"]["/api/v1/login"]["post"]
     request_body = login_post["requestBody"]["content"]
 
     assert "application/x-www-form-urlencoded" in request_body
@@ -34,7 +34,7 @@ def test_login_contract_requires_form_data(client):
 
 def test_posts_endpoint_contract_requires_auth(client):
     schema = client.get("/openapi.json").json()
-    posts_get = schema["paths"]["/posts/"]["get"]
+    posts_get = schema["paths"]["/api/v1/posts/"]["get"]
     security = posts_get.get("security", [])
 
     assert {"OAuth2PasswordBearer": []} in security
@@ -42,7 +42,7 @@ def test_posts_endpoint_contract_requires_auth(client):
 
 def test_user_creation_contract_excludes_password_in_response(client):
     schema = client.get("/openapi.json").json()
-    users_post = schema["paths"]["/users/"]["post"]
+    users_post = schema["paths"]["/api/v1/users/"]["post"]
     response_schema_ref = users_post["responses"]["201"]["content"]["application/json"][
         "schema"
     ]["$ref"]
@@ -63,7 +63,7 @@ def test_validation_contracts_are_exposed_in_openapi(client):
     assert vote["properties"]["dir"]["minimum"] == 0
     assert vote["properties"]["dir"]["maximum"] == 1
 
-    posts_params = schema["paths"]["/posts/"]["get"]["parameters"]
+    posts_params = schema["paths"]["/api/v1/posts/"]["get"]["parameters"]
     limit_param = next(param for param in posts_params if param["name"] == "limit")
     skip_param = next(param for param in posts_params if param["name"] == "skip")
     assert limit_param["schema"]["minimum"] == 1

@@ -7,7 +7,7 @@ from starlette.requests import Request
 pytestmark = pytest.mark.unit
 
 
-def _request(path="/posts/", headers=None, client=("127.0.0.1", 12345)):
+def _request(path="/api/v1/posts/", headers=None, client=("127.0.0.1", 12345)):
     headers = headers or []
     scope = {
         "type": "http",

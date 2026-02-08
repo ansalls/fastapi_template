@@ -71,9 +71,6 @@ def _include_api_routers() -> None:
     for router in routers:
         # Unversioned /api routes default to latest for convenience.
         app.include_router(router, prefix="/api", include_in_schema=False)
-    for router in routers:
-        # Legacy unversioned routes stay available for backwards compatibility.
-        app.include_router(router)
 
 
 _include_api_routers()

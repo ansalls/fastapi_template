@@ -5,7 +5,7 @@ pytestmark = pytest.mark.integration
 
 
 def test_get_user_by_id_returns_user(client, test_user):
-    response = client.get(f"/users/{test_user['id']}")
+    response = client.get(f"/api/v1/users/{test_user['id']}")
 
     assert response.status_code == 200
     found_user = schemas.UserOut(**response.json())
@@ -14,7 +14,7 @@ def test_get_user_by_id_returns_user(client, test_user):
 
 
 def test_get_user_not_found_returns_404(client):
-    response = client.get("/users/999999")
+    response = client.get("/api/v1/users/999999")
 
     assert response.status_code == 404
     assert response.json()["detail"] == "User with id: 999999 does not exist"
@@ -22,7 +22,7 @@ def test_get_user_not_found_returns_404(client):
 
 def test_create_user_duplicate_email_returns_conflict(client, test_user):
     duplicate_response = client.post(
-        "/users/",
+        "/api/v1/users/",
         json={"email": test_user["email"], "password": "password123"},
     )
 

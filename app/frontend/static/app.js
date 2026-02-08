@@ -58,7 +58,7 @@ function renderPosts(posts) {
 
 async function loadPosts() {
   try {
-    const response = await apiFetch("/posts/");
+    const response = await apiFetch("/api/v1/posts/");
     const posts = await response.json();
     renderPosts(posts);
     log(`Loaded ${posts.length} posts.`);
@@ -72,7 +72,7 @@ registerForm.addEventListener("submit", async (event) => {
   const email = document.getElementById("register-email").value;
   const password = document.getElementById("register-password").value;
   try {
-    await apiFetch("/users/", {
+    await apiFetch("/api/v1/users/", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ email, password }),
@@ -94,7 +94,7 @@ loginForm.addEventListener("submit", async (event) => {
   });
 
   try {
-    const response = await fetch("/login", {
+    const response = await fetch("/api/v1/login", {
       method: "POST",
       headers: { "Content-Type": "application/x-www-form-urlencoded" },
       body,
@@ -118,7 +118,7 @@ postForm.addEventListener("submit", async (event) => {
   const content = document.getElementById("post-content").value;
 
   try {
-    await apiFetch("/posts/", {
+    await apiFetch("/api/v1/posts/", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ title, content }),

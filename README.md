@@ -5,9 +5,9 @@ Production-oriented FastAPI starter with:
 - JWT auth with access + rotating refresh tokens
 - Refresh-token revocation tracking
 - RFC 7807 Problem Details error responses
-- API versioning via path (`/api/v1`) with latest-default aliases (`/api/*` and legacy unversioned paths)
+- API versioning via path (`/api/v1`) with latest-default alias (`/api/*`)
 - Redis-backed rate limiting
-- Outbox model + ARQ worker scaffold for background jobs
+- Outbox model + ARQ worker with scheduled dispatch/retry hardening
 - Observability hooks (Prometheus metrics, OpenTelemetry, Sentry)
 - Minimal built-in browser GUI at `/`
 
@@ -36,6 +36,14 @@ cp .env.example .env
 ```
 
 2. Update `.env` values (DB, Redis, secrets, optional observability settings).
+Recommended production variables:
+- `SECRET_KEY`
+- `REDIS_URL`
+- `SENTRY_DSN`
+- `OTEL_EXPORTER_OTLP_ENDPOINT`
+- `RATE_LIMIT_FAIL_OPEN` (typically `false`)
+- `OUTBOX_RETRY_MAX_ATTEMPTS`
+- `OUTBOX_RETRY_BACKOFF_SECONDS`
 3. Create databases:
 - App DB: `fastapi` (or your configured name)
 - Test DB: `<DATABASE_NAME>_test`
@@ -55,18 +63,17 @@ uvicorn app.main:app --reload
 
 - Preferred versioned routes: `/api/v1/...`
 - Latest-default alias: `/api/...`
-- Legacy unversioned routes remain available for backward compatibility.
 - Responses include `X-API-Version`.
 - If defaulted, responses include `X-API-Version-Defaulted: true`.
 
 ## Auth Lifecycle
 
-- `POST /login` returns:
+- `POST /api/v1/login` returns:
   - `access_token`
   - `refresh_token`
   - `token_type`
-- `POST /auth/refresh` rotates refresh tokens and returns a new token pair.
-- `POST /auth/logout` revokes a refresh token.
+- `POST /api/v1/auth/refresh` rotates refresh tokens and returns a new token pair.
+- `POST /api/v1/auth/logout` revokes a refresh token.
 
 ## Runtime Endpoints
 
@@ -131,6 +138,4 @@ Kubernetes baseline manifests are in:
 
 - Schema evolution is migration-driven (`alembic`), not import side effects.
 - Architectural notes: `ARCHITECTURE.md`
-- Decision log: `DECISIONS.md`
 - AI change checklist: `AI_CHANGE_CHECKLIST.md`
-- Enhancement backlog: `ENHANCEMENT_QUEUE.md`

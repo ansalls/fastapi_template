@@ -33,20 +33,19 @@ Worker scaffold:
 - Versioned path baseline: `/api/v1/*`
 - Latest-default aliases:
   - `/api/*` routes map to latest version behavior
-  - legacy unversioned routes remain available for backward compatibility
 - Response headers:
   - `X-API-Version`
   - `X-API-Version-Defaulted` when version was inferred
 
 ## Authentication and Session Flow
 
-1. `POST /login` validates credentials.
+1. `POST /api/v1/login` validates credentials.
 2. API returns:
    - short-lived access token
    - long-lived refresh token
 3. Refresh token metadata is persisted in `refresh_tokens`.
-4. `POST /auth/refresh` rotates refresh tokens and revokes the previous one.
-5. `POST /auth/logout` revokes refresh token session state.
+4. `POST /api/v1/auth/refresh` rotates refresh tokens and revokes the previous one.
+5. `POST /api/v1/auth/logout` revokes refresh token session state.
 
 ## Error Contract
 
@@ -74,6 +73,7 @@ Worker scaffold:
   - `refresh_tokens` for auth lifecycle state
   - `outbox_events` for asynchronous event handoff
 - Outbox events are created transactionally in write paths and dispatched by worker processes.
+- Worker hardening includes scheduled dispatch cadence and retry/backoff controls.
 
 ## Observability and Ops
 
