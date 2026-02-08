@@ -7,9 +7,9 @@ import uuid
 from pathlib import Path
 
 import httpx
-import psycopg2
+import psycopg
 import pytest
-from psycopg2 import sql
+from psycopg import sql
 
 pytestmark = pytest.mark.e2e
 
@@ -37,7 +37,7 @@ def _runtime_env(database_name):
 
 
 def _connect_admin(env):
-    return psycopg2.connect(
+    return psycopg.connect(
         host=env["DATABASE_HOSTNAME"],
         port=int(env["DATABASE_PORT"]),
         dbname="postgres",

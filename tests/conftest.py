@@ -9,7 +9,7 @@ from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
 
 SQLALCHEMY_DATABASE_URL = (
-    f"postgresql+psycopg2://{settings.database_username}:{settings.database_password}"
+    f"postgresql+psycopg://{settings.database_username}:{settings.database_password}"
     f"@{settings.database_hostname}:{settings.database_port}/{settings.database_name}_test"
 )
 

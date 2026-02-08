@@ -24,7 +24,7 @@ tests/                   # pytest suite
 
 ## Prerequisites
 
-- Python 3.12+ recommended
+- Python 3.14+ recommended
 - PostgreSQL 15+ recommended
 
 ## Local Setup
