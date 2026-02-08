@@ -50,3 +50,22 @@ def test_user_creation_contract_excludes_password_in_response(client):
     assert response_schema_ref.endswith("/UserOut")
     user_out_props = schema["components"]["schemas"]["UserOut"]["properties"]
     assert "password" not in user_out_props
+
+
+def test_validation_contracts_are_exposed_in_openapi(client):
+    schema = client.get("/openapi.json").json()
+
+    user_create = schema["components"]["schemas"]["UserCreate"]
+    assert user_create["properties"]["password"]["minLength"] == 8
+
+    vote = schema["components"]["schemas"]["Vote"]
+    assert vote["properties"]["post_id"]["exclusiveMinimum"] == 0
+    assert vote["properties"]["dir"]["minimum"] == 0
+    assert vote["properties"]["dir"]["maximum"] == 1
+
+    posts_params = schema["paths"]["/posts/"]["get"]["parameters"]
+    limit_param = next(param for param in posts_params if param["name"] == "limit")
+    skip_param = next(param for param in posts_params if param["name"] == "skip")
+    assert limit_param["schema"]["minimum"] == 1
+    assert limit_param["schema"]["maximum"] == 100
+    assert skip_param["schema"]["minimum"] == 0

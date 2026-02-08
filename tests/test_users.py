@@ -22,6 +22,21 @@ def test_create_user(client):
     assert res.status_code == 201
 
 
+@pytest.mark.parametrize("password", ["short", "1234567", ""])
+def test_create_user_rejects_short_passwords(client, password):
+    res = client.post(
+        "/users/", json={"email": "password-policy@example.com", "password": password}
+    )
+    assert res.status_code == 422
+
+
+def test_create_user_rejects_invalid_email(client):
+    res = client.post(
+        "/users/", json={"email": "not-an-email", "password": "password123"}
+    )
+    assert res.status_code == 422
+
+
 def test_login_user(test_user, client):
     res = client.post(
         "/login",

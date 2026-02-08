@@ -39,3 +39,18 @@ def test_vote_post_non_exist(authorized_client):
 def test_vote_unauthorized_user(client, test_posts):
     res = client.post("/vote/", json={"post_id": test_posts[3].id, "dir": 1})
     assert res.status_code == 401
+
+
+@pytest.mark.parametrize("direction", [-1, 2, 999])
+def test_vote_rejects_invalid_direction_value(authorized_client, test_posts, direction):
+    res = authorized_client.post(
+        "/vote/",
+        json={"post_id": test_posts[3].id, "dir": direction},
+    )
+    assert res.status_code == 422
+
+
+@pytest.mark.parametrize("post_id", [0, -1])
+def test_vote_rejects_non_positive_post_id(authorized_client, post_id):
+    res = authorized_client.post("/vote/", json={"post_id": post_id, "dir": 1})
+    assert res.status_code == 422

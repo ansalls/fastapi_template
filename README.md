@@ -95,6 +95,9 @@ Run a specific lane:
 make test-unit
 make test-integration
 make test-e2e
+make test-security
+make test-contract
+make test-property
 ```
 
 ## Docker
