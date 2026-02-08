@@ -41,7 +41,7 @@ services:
       OUTBOX_RETRY_MAX_ATTEMPTS: ${OUTBOX_RETRY_MAX_ATTEMPTS:-5}
       OUTBOX_RETRY_BACKOFF_SECONDS: ${OUTBOX_RETRY_BACKOFF_SECONDS:-30}
       OUTBOX_DISPATCH_INTERVAL_SECONDS: ${OUTBOX_DISPATCH_INTERVAL_SECONDS:-15}
-    command: arq worker.arq_worker.WorkerSettings
+    command: python -m worker.run_worker
     depends_on:
       postgres:
         condition: service_healthy

@@ -15,7 +15,7 @@ spec:
       containers:
       - name: worker
         image: fastapi-template:latest
-        command: ["arq", "worker.arq_worker.WorkerSettings"]
+        command: ["python", "-m", "worker.run_worker"]
         envFrom:
         - secretRef:
             name: fastapi-template-secrets
