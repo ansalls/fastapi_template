@@ -3,15 +3,26 @@ kind: ConfigMap
 metadata:
   name: fastapi-template-config
 data:
+  ENVIRONMENT: "production"
   DATABASE_HOSTNAME: "postgres"
   DATABASE_PORT: "5432"
   DATABASE_NAME: "fastapi"
   DATABASE_USERNAME: "postgres"
   REDIS_URL: "redis://fastapi-template-redis:6379/0"
+  TOKEN_ISSUER: "fastapi-template"
+  TOKEN_AUDIENCE: "fastapi-template-api"
   ACCESS_TOKEN_EXPIRE_MINUTES: "30"
   REFRESH_TOKEN_EXPIRE_DAYS: "30"
   API_LATEST_VERSION: "v1"
   RATE_LIMIT_ENABLED: "true"
+  RATE_LIMIT_FAIL_OPEN: "false"
+  TRUST_PROXY_HEADERS: "true"
+  TRUSTED_HOSTS: '["api.example.com"]'
+  SECURITY_HEADERS_ENABLED: "true"
+  SECURITY_CSP_ENABLED: "true"
+  SECURITY_HSTS_ENABLED: "true"
+  SECURITY_HSTS_MAX_AGE_SECONDS: "31536000"
+  SECURITY_HTTPS_REDIRECT: "true"
   METRICS_ENABLED: "true"
   OTEL_SERVICE_NAME: "fastapi-template"
   OUTBOX_DISPATCH_BATCH_SIZE: "100"

@@ -15,8 +15,17 @@ services:
       DATABASE_USERNAME: postgres
       SECRET_KEY: replace-this-in-production
       ALGORITHM: HS256
+      TOKEN_ISSUER: fastapi-template
+      TOKEN_AUDIENCE: fastapi-template-api
       ACCESS_TOKEN_EXPIRE_MINUTES: 30
       REDIS_URL: redis://redis:6379/0
+      TRUST_PROXY_HEADERS: false
+      TRUSTED_HOSTS: '["localhost","127.0.0.1","testserver"]'
+      SECURITY_HEADERS_ENABLED: true
+      SECURITY_CSP_ENABLED: true
+      SECURITY_HSTS_ENABLED: false
+      SECURITY_HSTS_MAX_AGE_SECONDS: 31536000
+      SECURITY_HTTPS_REDIRECT: false
       ENABLE_OPTIONAL_BACKGROUND_JOBS: true
       OUTBOX_DISPATCH_BATCH_SIZE: 100
       OUTBOX_RETRY_MAX_ATTEMPTS: 5
@@ -55,8 +64,12 @@ services:
       DATABASE_USERNAME: postgres
       SECRET_KEY: replace-this-in-production
       ALGORITHM: HS256
+      TOKEN_ISSUER: fastapi-template
+      TOKEN_AUDIENCE: fastapi-template-api
       ACCESS_TOKEN_EXPIRE_MINUTES: 30
       REDIS_URL: redis://redis:6379/0
+      TRUST_PROXY_HEADERS: false
+      TRUSTED_HOSTS: '["localhost","127.0.0.1","testserver"]'
       ENABLE_OPTIONAL_BACKGROUND_JOBS: true
       OUTBOX_DISPATCH_BATCH_SIZE: 100
       OUTBOX_RETRY_MAX_ATTEMPTS: 5

@@ -37,8 +37,11 @@ def test_policy_loading_and_key_generation():
 
 
 def test_client_ip_resolution_and_principal(monkeypatch):
+    monkeypatch.setattr(rate_limit.settings, "trust_proxy_headers", True)
     request = _request(headers=[(b"x-forwarded-for", b"10.1.1.1, 10.1.1.2")])
     assert rate_limit._client_ip(request) == "10.1.1.1"
+    invalid_proxy_request = _request(headers=[(b"x-forwarded-for", b"not-an-ip")])
+    assert rate_limit._client_ip(invalid_proxy_request) == "127.0.0.1"
 
     no_client_request = _request(client=None)  # type: ignore[arg-type]
     assert rate_limit._client_ip(no_client_request) == "unknown"

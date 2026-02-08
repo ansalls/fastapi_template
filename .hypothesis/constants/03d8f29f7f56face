@@ -1,0 +1,4 @@
+# file: /Users/tony/Desktop/Code/Projects/fastapi_template/app/oauth2.py
+# hypothesis_version: 6.141.1
+
+['/api/v1/login', 'Bearer', 'Invalid payload', 'WWW-Authenticate', 'access', 'aud', 'bearer', 'detail', 'error_code', 'exp', 'iat', 'invalid_credentials', 'iss', 'jti', 'nbf', 'refresh', 'require', 'token_type', 'user_id']

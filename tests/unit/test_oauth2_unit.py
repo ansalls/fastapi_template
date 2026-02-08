@@ -1,10 +1,11 @@
 import uuid
 from datetime import datetime, timedelta, timezone
 
+import jwt
 import pytest
 from app import models, oauth2
 from fastapi import HTTPException, status
-from jose import JWTError, jwt
+from jwt import InvalidTokenError
 
 pytestmark = pytest.mark.unit
 
@@ -62,7 +63,7 @@ def test_get_current_user_rejects_unknown_user():
 
 def test_decode_token_rejects_non_dict_payload(monkeypatch):
     monkeypatch.setattr(oauth2.jwt, "decode", lambda *_args, **_kwargs: "not-a-dict")
-    with pytest.raises(JWTError):
+    with pytest.raises(InvalidTokenError):
         oauth2._decode_token("token-value")
 
 

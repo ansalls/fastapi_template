@@ -1,7 +1,7 @@
 from datetime import datetime
 from typing import Annotated, Optional
 
-from pydantic import BaseModel, ConfigDict, EmailStr, Field
+from pydantic import BaseModel, ConfigDict, EmailStr, Field, field_validator
 
 
 class PostBase(BaseModel):
@@ -40,7 +40,12 @@ class PostOut(BaseModel):
 
 class UserCreate(BaseModel):
     email: EmailStr
-    password: Annotated[str, Field(min_length=8, max_length=128)]
+    password: Annotated[str, Field(min_length=8, max_length=72)]
+
+    @field_validator("email")
+    @classmethod
+    def normalize_email(cls, value: EmailStr) -> str:
+        return str(value).strip().lower()
 
 
 class UserLogin(BaseModel):

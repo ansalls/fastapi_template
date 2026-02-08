@@ -6,10 +6,11 @@ Production-oriented FastAPI starter with:
 - OAuth login for Google, Microsoft, Apple, Facebook, and GitHub
 - Refresh-token revocation tracking
 - RFC 7807 Problem Details error responses
-- API versioning via path (`/api/v1`) with latest-default alias (`/api/*`)
+- API versioning via explicit path (`/api/v1`)
 - Redis-backed rate limiting
 - Outbox model + ARQ worker with scheduled dispatch/retry hardening
 - Observability hooks (Prometheus metrics, OpenTelemetry, Sentry)
+- Security hardening middleware (trusted hosts, security headers, CSP, no-store auth responses)
 - Minimal built-in browser GUI at `/`
 
 ## Prerequisites
@@ -38,11 +39,18 @@ cp .env.example .env
 
 2. Update `.env` values (DB, Redis, secrets, optional observability settings).
 Recommended production variables:
+- `ENVIRONMENT=production`
 - `SECRET_KEY`
+- `TOKEN_ISSUER`
+- `TOKEN_AUDIENCE`
 - `REDIS_URL`
 - `SENTRY_DSN`
 - `OTEL_EXPORTER_OTLP_ENDPOINT`
 - `RATE_LIMIT_FAIL_OPEN` (typically `false`)
+- `TRUST_PROXY_HEADERS`
+- `TRUSTED_HOSTS`
+- `SECURITY_HSTS_ENABLED` (typically `true`)
+- `SECURITY_HTTPS_REDIRECT` (typically `true`)
 - `OUTBOX_RETRY_MAX_ATTEMPTS`
 - `OUTBOX_RETRY_BACKOFF_SECONDS`
 - OAuth provider credentials (`OAUTH_*_CLIENT_ID`, `OAUTH_*_CLIENT_SECRET`)
@@ -64,8 +72,8 @@ uvicorn app.main:app --reload
 
 ## API Versioning
 
-- Preferred versioned routes: `/api/v1/...`
-- Latest-default alias: `/api/...`
+- Versioned routes: `/api/v1/...`
+- Unversioned `/api/...` aliases are intentionally not exposed.
 - Responses include `X-API-Version`.
 - If defaulted, responses include `X-API-Version-Defaulted: true`.
 
@@ -75,6 +83,8 @@ uvicorn app.main:app --reload
   - `access_token`
   - `refresh_token`
   - `token_type`
+- Auth responses include `Cache-Control: no-store` and `Pragma: no-cache`.
+- JWTs include `iss` and `aud` claims and are validated on decode.
 - `POST /api/v1/auth/refresh` rotates refresh tokens and returns a new token pair.
 - `POST /api/v1/auth/logout` revokes a refresh token.
 - OAuth endpoints:
@@ -97,6 +107,7 @@ uvicorn app.main:app --reload
 ```bash
 make lint
 make typecheck
+make audit-security
 make test
 ```
 

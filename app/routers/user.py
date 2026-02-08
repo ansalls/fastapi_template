@@ -2,7 +2,7 @@ from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
-from .. import models, schemas, utils
+from .. import models, oauth2, schemas, utils
 from ..database import get_db
 from ..outbox import enqueue_outbox_event
 from ..rate_limit import rate_limit_dependency
@@ -42,13 +42,11 @@ def create_user(
 @router.get("/{id}", response_model=schemas.UserOut)
 def get_user(
     id: int,
-    db: Session = Depends(get_db),
+    current_user: models.User = Depends(oauth2.get_current_user),
 ):
-    user = db.query(models.User).filter(models.User.id == id).first()
-    if not user:
+    if int(current_user.id) != int(id):
         raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail=f"User with id: {id} does not exist",
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Not authorized to access this user",
         )
-
-    return user
+    return current_user

@@ -5,6 +5,7 @@ from pathlib import Path
 import pytest
 from app import main
 from fastapi.testclient import TestClient
+from starlette.middleware.httpsredirect import HTTPSRedirectMiddleware
 
 pytestmark = pytest.mark.unit
 
@@ -69,6 +70,24 @@ def test_api_version_resolution_and_headers():
     assert "X-API-Version-Defaulted" not in explicit.headers
 
 
+def test_security_headers_can_be_disabled(monkeypatch):
+    monkeypatch.setattr(main.settings, "security_headers_enabled", False)
+    client = TestClient(main.app)
+    response = client.get("/health")
+    assert response.status_code == 200
+    assert "x-content-type-options" not in response.headers
+    monkeypatch.setattr(main.settings, "security_headers_enabled", True)
+
+
+def test_security_headers_include_hsts_for_https(monkeypatch):
+    monkeypatch.setattr(main.settings, "security_hsts_enabled", True)
+    client = TestClient(main.app, base_url="https://testserver")
+    response = client.get("/health")
+    assert response.status_code == 200
+    assert response.headers["strict-transport-security"].startswith("max-age=")
+    monkeypatch.setattr(main.settings, "security_hsts_enabled", False)
+
+
 def test_include_api_routers_rejects_invalid_latest_version(monkeypatch):
     monkeypatch.setattr(main.settings, "api_latest_version", "v9")
     monkeypatch.setattr(main.settings, "api_supported_versions", ["v1"])
@@ -76,6 +95,27 @@ def test_include_api_routers_rejects_invalid_latest_version(monkeypatch):
         main._include_api_routers()
     monkeypatch.setattr(main.settings, "api_latest_version", "v1")
     monkeypatch.setattr(main.settings, "api_supported_versions", ["v1"])
+
+
+def test_main_module_adds_https_redirect_middleware_when_enabled(monkeypatch):
+    monkeypatch.setattr(main.settings, "trusted_hosts", [])
+    monkeypatch.setattr(main.settings, "security_https_redirect", True)
+
+    with warnings.catch_warnings():
+        warnings.filterwarnings(
+            "ignore",
+            category=RuntimeWarning,
+            message=".*app.main.*found in sys.modules.*",
+        )
+        module_vars = runpy.run_module(
+            "app.main", run_name="__coverage_main_https_redirect"
+        )
+
+    middleware_classes = [entry.cls for entry in module_vars["app"].user_middleware]
+    assert HTTPSRedirectMiddleware in middleware_classes
+
+    monkeypatch.setattr(main.settings, "trusted_hosts", ["localhost", "127.0.0.1", "testserver"])
+    monkeypatch.setattr(main.settings, "security_https_redirect", False)
 
 
 def test_main_module_handles_missing_static_dir(monkeypatch):

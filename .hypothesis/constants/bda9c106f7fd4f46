@@ -1,0 +1,4 @@
+# file: /Users/tony/Desktop/Code/Projects/fastapi_template/app/config.py
+# hypothesis_version: 6.141.1
+
+[0.0, 100, 120, 300, 5432, 31536000, ', ', '.env', '/', '127.0.0.1', 'HS256', 'HS384', 'HS512', 'Settings', 'after', 'algorithm', 'changeme', 'development', 'fastapi', 'fastapi-template', 'fastapi-template-api', 'http', 'https', 'ignore', 'localhost', 'password123', 'postgres', 'prod', 'production', 'test-secret-key', 'testserver', 'v1']

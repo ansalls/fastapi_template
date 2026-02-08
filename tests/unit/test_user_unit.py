@@ -4,8 +4,8 @@ from app import schemas
 pytestmark = pytest.mark.integration
 
 
-def test_get_user_by_id_returns_user(client, test_user):
-    response = client.get(f"/api/v1/users/{test_user['id']}")
+def test_get_user_by_id_returns_user(authorized_client, test_user):
+    response = authorized_client.get(f"/api/v1/users/{test_user['id']}")
 
     assert response.status_code == 200
     found_user = schemas.UserOut(**response.json())
@@ -13,11 +13,21 @@ def test_get_user_by_id_returns_user(client, test_user):
     assert found_user.email == test_user["email"]
 
 
-def test_get_user_not_found_returns_404(client):
-    response = client.get("/api/v1/users/999999")
+def test_get_user_requires_authentication(client, test_user):
+    response = client.get(f"/api/v1/users/{test_user['id']}")
+    assert response.status_code == 401
 
-    assert response.status_code == 404
-    assert response.json()["detail"] == "User with id: 999999 does not exist"
+
+def test_get_user_unknown_id_is_forbidden(authorized_client):
+    response = authorized_client.get("/api/v1/users/999999")
+    assert response.status_code == 403
+    assert response.json()["detail"] == "Not authorized to access this user"
+
+
+def test_get_user_forbidden_for_another_user(authorized_client, test_user2):
+    response = authorized_client.get(f"/api/v1/users/{test_user2['id']}")
+    assert response.status_code == 403
+    assert response.json()["detail"] == "Not authorized to access this user"
 
 
 def test_create_user_duplicate_email_returns_conflict(client, test_user):

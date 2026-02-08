@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import hashlib
+import ipaddress
 import time
 from dataclasses import dataclass
 from typing import Any, Callable, cast
@@ -56,9 +57,15 @@ def _load_policies() -> dict[str, RateLimitPolicy]:
 
 
 def _client_ip(request: Request) -> str:
-    xff = request.headers.get("x-forwarded-for")
-    if xff:
-        return xff.split(",")[0].strip()
+    if settings.trust_proxy_headers:
+        xff = request.headers.get("x-forwarded-for")
+        if xff:
+            first_hop = xff.split(",")[0].strip()
+            try:
+                ipaddress.ip_address(first_hop)
+                return first_hop
+            except ValueError:
+                pass
     if request.client is None:
         return "unknown"
     return request.client.host

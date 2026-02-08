@@ -7,8 +7,8 @@ passlib[bcrypt]==1.7.4
 pydantic==2.12.5
 pydantic-settings==2.11.0
 python-dotenv==1.2.1
-python-jose[cryptography]==3.5.0
-python-multipart==0.0.20
+PyJWT[crypto]==2.10.1
+python-multipart==0.0.22
 SQLAlchemy==2.0.46
 psycopg[binary]==3.2.13
 uvicorn[standard]==0.39.0

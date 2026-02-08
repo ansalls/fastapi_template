@@ -1,9 +1,16 @@
 from typing import Optional
+from urllib.parse import urlparse
 
+from pydantic import field_validator, model_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
+
+_ALLOWED_JWT_ALGORITHMS = {"HS256", "HS384", "HS512"}
 
 
 class Settings(BaseSettings):
+    # Runtime environment
+    environment: str = "development"
+
     # Core database and auth settings
     database_hostname: str = "localhost"
     database_port: int = 5432
@@ -12,6 +19,8 @@ class Settings(BaseSettings):
     database_username: str = "postgres"
     secret_key: str = "replace-this-in-production"
     algorithm: str = "HS256"
+    token_issuer: str = "fastapi-template"
+    token_audience: str = "fastapi-template-api"
     access_token_expire_minutes: int = 60
     refresh_token_expire_days: int = 30
 
@@ -28,7 +37,7 @@ class Settings(BaseSettings):
     # Rate limiting / Redis
     redis_url: str = "redis://localhost:6379/0"
     rate_limit_enabled: bool = True
-    rate_limit_fail_open: bool = True
+    rate_limit_fail_open: bool = False
     rate_limit_login_limit: int = 10
     rate_limit_login_window_seconds: int = 60
     rate_limit_register_limit: int = 5
@@ -70,6 +79,15 @@ class Settings(BaseSettings):
     oauth_github_client_id: Optional[str] = None
     oauth_github_client_secret: Optional[str] = None
 
+    # Request security controls
+    trust_proxy_headers: bool = False
+    trusted_hosts: list[str] = ["localhost", "127.0.0.1", "testserver"]
+    security_headers_enabled: bool = True
+    security_csp_enabled: bool = True
+    security_hsts_enabled: bool = False
+    security_hsts_max_age_seconds: int = 31_536_000
+    security_https_redirect: bool = False
+
     # CORS
     cors_origins: list[str] = [
         "http://localhost:3000",
@@ -83,6 +101,50 @@ class Settings(BaseSettings):
         case_sensitive=False,
         extra="ignore",
     )
+
+    @field_validator("algorithm")
+    @classmethod
+    def validate_algorithm(cls, value: str) -> str:
+        normalized = value.strip().upper()
+        if normalized not in _ALLOWED_JWT_ALGORITHMS:
+            allowed = ", ".join(sorted(_ALLOWED_JWT_ALGORITHMS))
+            raise ValueError(f"ALGORITHM must be one of: {allowed}")
+        return normalized
+
+    @field_validator("oauth_frontend_callback_url")
+    @classmethod
+    def validate_oauth_frontend_callback_url(cls, value: str) -> str:
+        if not value:
+            return "/"
+        parsed = urlparse(value)
+        if parsed.fragment:
+            raise ValueError("OAUTH_FRONTEND_CALLBACK_URL must not include a fragment")
+        if parsed.scheme or parsed.netloc:
+            if parsed.scheme not in {"http", "https"} or not parsed.netloc:
+                raise ValueError(
+                    "OAUTH_FRONTEND_CALLBACK_URL absolute URLs must use http/https"
+                )
+            return value
+        if not value.startswith("/"):
+            raise ValueError(
+                "OAUTH_FRONTEND_CALLBACK_URL must be an absolute path or absolute URL"
+            )
+        return value
+
+    @model_validator(mode="after")
+    def validate_production_secret(self) -> "Settings":
+        if self.environment.lower() in {"prod", "production"}:
+            insecure_secrets = {
+                "",
+                "replace-this-in-production",
+                "test-secret-key",
+                "changeme",
+            }
+            if self.secret_key in insecure_secrets or len(self.secret_key) < 32:
+                raise ValueError(
+                    "SECRET_KEY must be a high-entropy value (>=32 chars) in production"
+                )
+        return self
 
 
 settings = Settings()

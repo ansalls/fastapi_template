@@ -7,18 +7,20 @@ import uuid
 from dataclasses import dataclass
 from datetime import datetime, timedelta, timezone
 from typing import Any
-from urllib.parse import urlencode
+from urllib.parse import urlencode, urlparse
 
 import httpx
+import jwt
 from fastapi import HTTPException, Request, status
-from jose import JWTError, jwt
+from jwt import InvalidTokenError, PyJWTError
 from sqlalchemy.orm import Session
 
 from . import models, oauth2, schemas, utils
 from .config import settings
 from .outbox import enqueue_outbox_event
 
-_OAUTH_STATE_TOKEN_TYPE = "oauth_state"
+_OAUTH_STATE_TOKEN_TYPE = "oauth_state"  # nosec B105
+_OAUTH_STATE_AUDIENCE = f"{oauth2.TOKEN_AUDIENCE}:oauth-state"
 
 
 @dataclass(frozen=True)
@@ -196,6 +198,8 @@ def build_oauth_state(
     link_user_id: int | None = None,
 ) -> str:
     payload = {
+        "iss": oauth2.TOKEN_ISSUER,
+        "aud": _OAUTH_STATE_AUDIENCE,
         "token_type": _OAUTH_STATE_TOKEN_TYPE,
         "provider": provider,
         "code_verifier": code_verifier,
@@ -214,8 +218,19 @@ def parse_oauth_state(state_token: str, *, expected_provider: str) -> OAuthState
             state_token,
             oauth2.SECRET_KEY,
             algorithms=[oauth2.ALGORITHM],
+            audience=_OAUTH_STATE_AUDIENCE,
+            issuer=oauth2.TOKEN_ISSUER,
+            options={
+                "require": [
+                    "token_type",
+                    "provider",
+                    "code_verifier",
+                    "exp",
+                    "jti",
+                ]
+            },
         )
-    except JWTError:
+    except InvalidTokenError:
         raise _oauth_error("Invalid OAuth state", error_code="invalid_oauth_state")
 
     if payload.get("token_type") != _OAUTH_STATE_TOKEN_TYPE:
@@ -392,6 +407,13 @@ def _to_bool(value: Any) -> bool:
     return False
 
 
+def _normalize_email(value: str | None) -> str | None:
+    if value is None:
+        return None
+    normalized = value.strip().lower()
+    return normalized or None
+
+
 def _get_identity_from_apple(token_payload: dict[str, Any]) -> ExternalIdentity:
     id_token = token_payload.get("id_token")
     if not isinstance(id_token, str) or not id_token:
@@ -401,8 +423,22 @@ def _get_identity_from_apple(token_payload: dict[str, Any]) -> ExternalIdentity:
             status_code=status.HTTP_502_BAD_GATEWAY,
         )
     try:
-        claims = jwt.get_unverified_claims(id_token)
-    except JWTError:
+        claims = jwt.decode(
+            id_token,
+            options={
+                "verify_signature": False,
+                "verify_aud": False,
+                "verify_iss": False,
+                "verify_exp": False,
+            },
+        )
+    except PyJWTError:
+        raise _oauth_error(
+            "Apple OAuth id_token was invalid",
+            error_code="oauth_profile_fetch_failed",
+            status_code=status.HTTP_502_BAD_GATEWAY,
+        )
+    if not isinstance(claims, dict):
         raise _oauth_error(
             "Apple OAuth id_token was invalid",
             error_code="oauth_profile_fetch_failed",
@@ -420,7 +456,7 @@ def _get_identity_from_apple(token_payload: dict[str, Any]) -> ExternalIdentity:
     return ExternalIdentity(
         provider="apple",
         subject=subject,
-        email=str(email) if isinstance(email, str) and email else None,
+        email=_normalize_email(str(email) if isinstance(email, str) and email else None),
         email_verified=_to_bool(claims.get("email_verified")),
     )
 
@@ -458,14 +494,14 @@ def _select_github_email(access_token: str) -> tuple[str | None, bool]:
         None,
     )
     if primary_verified is not None:
-        email = primary_verified.get("email")
-        if isinstance(email, str) and email:
+        email = _normalize_email(primary_verified.get("email"))
+        if email:
             return email, True
 
     verified = next((item for item in candidates if _to_bool(item.get("verified"))), None)
     if verified is not None:
-        email = verified.get("email")
-        if isinstance(email, str) and email:
+        email = _normalize_email(verified.get("email"))
+        if email:
             return email, True
     return None, False
 
@@ -485,11 +521,11 @@ def _identity_from_userinfo(
         )
 
     email = payload.get("email")
-    resolved_email = str(email) if isinstance(email, str) and email else None
+    resolved_email = _normalize_email(str(email) if isinstance(email, str) and email else None)
     if provider == "microsoft" and not resolved_email:
         preferred = payload.get("preferred_username")
         if isinstance(preferred, str) and preferred:
-            resolved_email = preferred
+            resolved_email = _normalize_email(preferred)
 
     email_verified = _to_bool(payload.get("email_verified"))
     if provider == "facebook" and resolved_email:
@@ -554,21 +590,29 @@ def _find_or_create_user_for_identity(db: Session, identity: ExternalIdentity) -
     now = _now_utc()
     if account is not None:
         account.last_login_at = now  # type: ignore[assignment]
-        if identity.email:
-            account.provider_email = identity.email  # type: ignore[assignment]
+        normalized_email = _normalize_email(identity.email)
+        if normalized_email:
+            account.provider_email = normalized_email  # type: ignore[assignment]
         return account.user
 
-    if not identity.email:
+    normalized_email = _normalize_email(identity.email)
+    if not normalized_email:
         raise _oauth_error(
             "OAuth provider did not return an email address",
             error_code="oauth_email_required",
-            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
+        )
+    if not identity.email_verified:
+        raise _oauth_error(
+            "OAuth email address is not verified",
+            error_code="oauth_email_unverified",
+            status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
         )
 
-    user = db.query(models.User).filter(models.User.email == identity.email).first()
+    user = db.query(models.User).filter(models.User.email == normalized_email).first()
     if user is None:
         user = models.User(
-            email=identity.email,
+            email=normalized_email,
             password=utils.hash(secrets.token_urlsafe(48)),
         )
         db.add(user)
@@ -583,7 +627,7 @@ def _find_or_create_user_for_identity(db: Session, identity: ExternalIdentity) -
         user_id=int(user.id),
         provider=identity.provider,
         provider_subject=identity.subject,
-        provider_email=identity.email,
+        provider_email=normalized_email,
         last_login_at=now,
     )
     db.add(oauth_account)
@@ -638,8 +682,9 @@ def _link_identity_to_existing_user(
                 status_code=status.HTTP_409_CONFLICT,
             )
         existing_provider_for_user.last_login_at = now  # type: ignore[assignment]
-        if identity.email:
-            existing_provider_for_user.provider_email = identity.email  # type: ignore[assignment]
+        normalized_email = _normalize_email(identity.email)
+        if normalized_email:
+            existing_provider_for_user.provider_email = normalized_email  # type: ignore[assignment]
         return
 
     db.add(
@@ -647,7 +692,7 @@ def _link_identity_to_existing_user(
             user_id=int(user.id),
             provider=identity.provider,
             provider_subject=identity.subject,
-            provider_email=identity.email,
+            provider_email=_normalize_email(identity.email),
             last_login_at=now,
         )
     )
@@ -661,6 +706,9 @@ def complete_oauth_callback(
     code: str,
     state: OAuthState,
 ) -> OAuthCallbackResult:
+    if provider != state.provider:
+        raise _oauth_error("Invalid OAuth provider state", error_code="invalid_oauth_state")
+
     token_payload = _exchange_code_for_token(
         provider,
         request,
@@ -692,8 +740,44 @@ def complete_oauth_callback(
     )
 
 
-def build_frontend_success_redirect(provider: str, token: schemas.Token) -> str:
+def _origin_from_url(url: str) -> str | None:
+    parsed = urlparse(url)
+    if not parsed.scheme or not parsed.netloc:
+        return None
+    return f"{parsed.scheme}://{parsed.netloc}".rstrip("/")
+
+
+def _frontend_redirect_target() -> str:
     target = settings.oauth_frontend_callback_url or "/"
+    parsed = urlparse(target)
+    if parsed.scheme and parsed.netloc:
+        target_origin = f"{parsed.scheme}://{parsed.netloc}".rstrip("/")
+        allowed_origins = {origin.rstrip("/") for origin in settings.cors_origins}
+        public_base_origin = (
+            _origin_from_url(settings.oauth_public_base_url)
+            if settings.oauth_public_base_url
+            else None
+        )
+        if public_base_origin:
+            allowed_origins.add(public_base_origin)
+        if target_origin not in allowed_origins:
+            raise _oauth_error(
+                "OAuth frontend callback origin is not allowed",
+                error_code="oauth_frontend_redirect_not_allowed",
+                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            )
+        return target
+    if parsed.scheme or parsed.netloc or not target.startswith("/"):
+        raise _oauth_error(
+            "OAuth frontend callback URL is invalid",
+            error_code="oauth_frontend_redirect_invalid",
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+        )
+    return target
+
+
+def build_frontend_success_redirect(provider: str, token: schemas.Token) -> str:
+    target = _frontend_redirect_target()
     params = {
         "provider": provider,
         "access_token": token.access_token,
@@ -705,12 +789,12 @@ def build_frontend_success_redirect(provider: str, token: schemas.Token) -> str:
 
 
 def build_frontend_link_redirect(provider: str) -> str:
-    target = settings.oauth_frontend_callback_url or "/"
+    target = _frontend_redirect_target()
     params = {"provider": provider, "linked": "true"}
     return f"{target}#{urlencode(params)}"
 
 
 def build_frontend_error_redirect(provider: str, *, error: str) -> str:
-    target = settings.oauth_frontend_callback_url or "/"
+    target = _frontend_redirect_target()
     params = {"provider": provider, "error": error}
     return f"{target}#{urlencode(params)}"

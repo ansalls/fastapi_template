@@ -55,11 +55,19 @@ function renderPosts(posts) {
   postList.innerHTML = "";
   for (const item of posts) {
     const li = document.createElement("li");
-    li.innerHTML = `
-      <p class="post-title">${item.Post.title}</p>
-      <p class="post-meta">Post #${item.Post.id} • Votes: ${item.votes}</p>
-      <p class="post-content">${item.Post.content}</p>
-    `;
+    const title = document.createElement("p");
+    title.className = "post-title";
+    title.textContent = item.Post.title;
+
+    const meta = document.createElement("p");
+    meta.className = "post-meta";
+    meta.textContent = `Post #${item.Post.id} • Votes: ${item.votes}`;
+
+    const content = document.createElement("p");
+    content.className = "post-content";
+    content.textContent = item.Post.content;
+
+    li.append(title, meta, content);
     postList.appendChild(li);
   }
 }

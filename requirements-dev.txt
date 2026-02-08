@@ -1,7 +1,9 @@
 -r requirements.txt
+bandit==1.8.6
 hypothesis==6.141.1
 httpx==0.28.1
 mypy==1.19.1
+pip-audit==2.9.0
 pre-commit==4.3.0
 pytest==8.4.2
 pytest-cov==7.0.0

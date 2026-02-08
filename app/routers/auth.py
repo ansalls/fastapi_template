@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import secrets
 from typing import Any, Optional, Union
 
 from fastapi import APIRouter, Depends, Form, HTTPException, Request, Response, status
@@ -11,6 +12,7 @@ from .. import database, models, oauth2, oauth_external, schemas, utils
 from ..rate_limit import rate_limit_dependency
 
 router = APIRouter(tags=["Authentication"])
+_DUMMY_PASSWORD_HASH = utils.hash(secrets.token_urlsafe(32))
 
 
 @router.post("/login", response_model=schemas.Token)
@@ -19,13 +21,13 @@ def login(
     user_credentials: OAuth2PasswordRequestForm = Depends(),
     db: Session = Depends(database.get_db),
 ):
+    normalized_username = user_credentials.username.strip().lower()
     user = (
-        db.query(models.User)
-        .filter(models.User.email == user_credentials.username)
-        .first()
+        db.query(models.User).filter(models.User.email == normalized_username).first()
     )
 
     if not user:
+        utils.verify(user_credentials.password, _DUMMY_PASSWORD_HASH)
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN, detail="Invalid Credentials"
         )

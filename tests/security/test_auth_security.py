@@ -1,9 +1,9 @@
 from datetime import datetime, timedelta, timezone
 
+import jwt
 import pytest
 from app import models
 from app.config import settings
-from jose import jwt
 
 pytestmark = [pytest.mark.integration, pytest.mark.security]
 
@@ -95,3 +95,22 @@ def test_disallowed_cors_origin_is_not_allowed(client):
     )
     assert response.status_code == 400
     assert "access-control-allow-origin" not in response.headers
+
+
+def test_security_headers_are_applied(client):
+    response = client.get("/health")
+    assert response.status_code == 200
+    assert response.headers["x-content-type-options"] == "nosniff"
+    assert response.headers["x-frame-options"] == "DENY"
+    assert response.headers["referrer-policy"] == "no-referrer"
+    assert response.headers["content-security-policy"].startswith("default-src 'self'")
+
+
+def test_auth_responses_are_no_store(client, test_user):
+    response = client.post(
+        "/api/v1/login",
+        data={"username": test_user["email"], "password": test_user["password"]},
+    )
+    assert response.status_code == 200
+    assert response.headers["cache-control"] == "no-store"
+    assert response.headers["pragma"] == "no-cache"

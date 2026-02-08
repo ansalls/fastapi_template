@@ -1,0 +1,4 @@
+# file: /Users/tony/Desktop/Code/Projects/fastapi_template/app/rate_limit.py
+# hypothesis_version: 6.141.1
+
+[',', 'Rate limit exceeded', 'Retry-After', 'X-RateLimit-Limit', 'X-RateLimit-Reset', 'api_read', 'api_write', 'auth_login', 'auth_register', 'authorization', 'bearer ', 'detail', 'error_code', 'rate_limit_exceeded', 'unknown', 'utf-8', 'x-forwarded-for']

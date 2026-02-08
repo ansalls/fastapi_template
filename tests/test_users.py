@@ -1,7 +1,7 @@
+import jwt
 import pytest
 from app import schemas
 from app.config import settings
-from jose import jwt
 
 pytestmark = pytest.mark.integration
 
@@ -44,7 +44,11 @@ def test_login_user(test_user, client):
     )
     login_res = schemas.Token(**res.json())
     payload = jwt.decode(
-        login_res.access_token, settings.secret_key, algorithms=[settings.algorithm]
+        login_res.access_token,
+        settings.secret_key,
+        algorithms=[settings.algorithm],
+        audience=settings.token_audience,
+        issuer=settings.token_issuer,
     )
     id = payload.get("user_id")
     assert id == test_user["id"]

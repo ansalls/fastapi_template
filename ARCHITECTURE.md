@@ -32,8 +32,7 @@ Worker scaffold:
 ## API Surface and Versioning
 
 - Versioned path baseline: `/api/v1/*`
-- Latest-default aliases:
-  - `/api/*` routes map to latest version behavior
+- No unversioned `/api/*` aliases are exposed.
 - Response headers:
   - `X-API-Version`
   - `X-API-Version-Defaulted` when version was inferred
@@ -44,10 +43,13 @@ Worker scaffold:
 2. API returns:
    - short-lived access token
    - long-lived refresh token
+   - `token_type` (`bearer`)
 3. Refresh token metadata is persisted in `refresh_tokens`.
 4. `POST /api/v1/auth/refresh` rotates refresh tokens and revokes the previous one.
 5. `POST /api/v1/auth/logout` revokes refresh token session state.
-6. OAuth login is supported via:
+6. JWT decode enforces issuer/audience claims and token-type constraints.
+7. Auth endpoints return no-store cache headers to reduce token persistence in intermediaries.
+8. OAuth login is supported via:
    - `GET /api/v1/auth/oauth/providers`
    - `GET /api/v1/auth/oauth/{provider}/start`
    - `POST /api/v1/auth/oauth/{provider}/link/start` (link provider to existing account)
@@ -70,6 +72,7 @@ Worker scaffold:
 - Key strategy:
   - authenticated requests: `user:{id}`
   - unauthenticated fallback: `ip:{client}`
+- `X-Forwarded-For` is only trusted when `TRUST_PROXY_HEADERS=true`.
 - Policies are route-class specific (login/register/read/write).
 
 ## Persistence and Reliability Pattern
@@ -89,6 +92,11 @@ Worker scaffold:
 - `/metrics` via Prometheus instrumentator
 - OpenTelemetry tracing setup via OTLP endpoint setting
 - Sentry initialization hook via DSN setting
+- HTTP hardening middleware:
+  - trusted host enforcement
+  - optional HTTPS redirect
+  - CSP and common browser security headers
+  - no-store caching policy for auth routes
 
 ## Deployment Baseline
 

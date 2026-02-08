@@ -9,7 +9,7 @@ import pytest
 from app import models, oauth_external
 from app.config import settings
 from fastapi import HTTPException
-from jose import JWTError
+from jwt import PyJWTError
 from starlette.requests import Request
 
 pytestmark = pytest.mark.unit
@@ -35,6 +35,16 @@ def reset_oauth_settings(monkeypatch):
     monkeypatch.setattr(settings, "oauth_public_base_url", None)
     monkeypatch.setattr(settings, "oauth_state_expire_seconds", 300)
     monkeypatch.setattr(settings, "oauth_frontend_callback_url", "/")
+    monkeypatch.setattr(
+        settings,
+        "cors_origins",
+        [
+            "http://localhost:3000",
+            "http://127.0.0.1:3000",
+            "http://localhost:8000",
+            "http://127.0.0.1:8000",
+        ],
+    )
 
 
 @pytest.fixture
@@ -134,6 +144,9 @@ def test_parse_oauth_state_rejects_wrong_token_type():
     token = oauth_external.jwt.encode(
         {
             "token_type": "not_oauth_state",
+            "iss": oauth_external.oauth2.TOKEN_ISSUER,
+            "aud": oauth_external._OAUTH_STATE_AUDIENCE,
+            "jti": "state-jti",
             "provider": "google",
             "code_verifier": "verifier",
             "exp": datetime.now(timezone.utc) + timedelta(minutes=5),
@@ -145,11 +158,15 @@ def test_parse_oauth_state_rejects_wrong_token_type():
         oauth_external.parse_oauth_state(token, expected_provider="google")
 
 
-def test_parse_oauth_state_rejects_missing_code_verifier(monkeypatch):
+def test_parse_oauth_state_rejects_non_string_code_verifier(monkeypatch):
     token = oauth_external.jwt.encode(
         {
             "token_type": "oauth_state",
+            "iss": oauth_external.oauth2.TOKEN_ISSUER,
+            "aud": oauth_external._OAUTH_STATE_AUDIENCE,
+            "jti": "state-jti",
             "provider": "google",
+            "code_verifier": 123,
             "exp": datetime.now(timezone.utc) + timedelta(minutes=5),
         },
         oauth_external.oauth2.SECRET_KEY,
@@ -163,6 +180,9 @@ def test_parse_oauth_state_rejects_invalid_link_user_id_type():
     token = oauth_external.jwt.encode(
         {
             "token_type": "oauth_state",
+            "iss": oauth_external.oauth2.TOKEN_ISSUER,
+            "aud": oauth_external._OAUTH_STATE_AUDIENCE,
+            "jti": "state-jti",
             "provider": "google",
             "code_verifier": "verifier",
             "link_user_id": "not-an-int",
@@ -179,6 +199,9 @@ def test_parse_oauth_state_rejects_non_positive_link_user_id():
     token = oauth_external.jwt.encode(
         {
             "token_type": "oauth_state",
+            "iss": oauth_external.oauth2.TOKEN_ISSUER,
+            "aud": oauth_external._OAUTH_STATE_AUDIENCE,
+            "jti": "state-jti",
             "provider": "google",
             "code_verifier": "verifier",
             "link_user_id": 0,
@@ -431,8 +454,12 @@ def test_to_bool(value, expected):
 def test_get_identity_from_apple_success(monkeypatch):
     monkeypatch.setattr(
         oauth_external.jwt,
-        "get_unverified_claims",
-        lambda _token: {"sub": "apple-sub", "email": "apple@example.com", "email_verified": "true"},
+        "decode",
+        lambda *_args, **_kwargs: {
+            "sub": "apple-sub",
+            "email": "apple@example.com",
+            "email_verified": "true",
+        },
     )
     identity = oauth_external._get_identity_from_apple({"id_token": "id-token"})
     assert identity.provider == "apple"
@@ -445,15 +472,21 @@ def test_get_identity_from_apple_success(monkeypatch):
     "payload,patcher",
     [
         ({}, None),
-        ({"id_token": "id-token"}, lambda: (_ for _ in ()).throw(JWTError("bad"))),
+        ({"id_token": "id-token"}, lambda: (_ for _ in ()).throw(PyJWTError("bad"))),
         ({"id_token": "id-token"}, lambda: {"email": "missing-sub@example.com"}),
     ],
 )
 def test_get_identity_from_apple_error_cases(monkeypatch, payload, patcher):
     if patcher is not None:
-        monkeypatch.setattr(oauth_external.jwt, "get_unverified_claims", lambda _token: patcher())
+        monkeypatch.setattr(oauth_external.jwt, "decode", lambda *_args, **_kwargs: patcher())
     with pytest.raises(HTTPException):
         oauth_external._get_identity_from_apple(payload)
+
+
+def test_get_identity_from_apple_rejects_non_dict_claims(monkeypatch):
+    monkeypatch.setattr(oauth_external.jwt, "decode", lambda *_args, **_kwargs: ["not-dict"])
+    with pytest.raises(HTTPException):
+        oauth_external._get_identity_from_apple({"id_token": "id-token"})
 
 
 def test_select_github_email_prefers_primary_verified(monkeypatch):
@@ -810,6 +843,20 @@ def test_find_or_create_user_for_identity_requires_email_for_new_account(session
 
 
 @pytest.mark.integration
+def test_find_or_create_user_for_identity_requires_verified_email_for_new_account(session):
+    identity = oauth_external.ExternalIdentity(
+        provider="google",
+        subject="unverified-subject",
+        email="unverified@example.com",
+        email_verified=False,
+    )
+    with pytest.raises(HTTPException) as exc_info:
+        oauth_external._find_or_create_user_for_identity(session, identity)
+    assert exc_info.value.status_code == 422
+    assert exc_info.value.detail["error_code"] == "oauth_email_unverified"
+
+
+@pytest.mark.integration
 def test_link_identity_to_existing_user_user_not_found(session):
     identity = oauth_external.ExternalIdentity(
         provider="github",
@@ -1054,6 +1101,23 @@ def test_complete_oauth_callback_link_mode(session, monkeypatch, fake_request):
     assert result.token is None
 
 
+def test_complete_oauth_callback_rejects_provider_state_mismatch(session, fake_request):
+    with pytest.raises(HTTPException) as exc_info:
+        oauth_external.complete_oauth_callback(
+            session,
+            fake_request,
+            provider="github",
+            code="code-123",
+            state=oauth_external.OAuthState(
+                provider="google",
+                code_verifier="verifier",
+                redirect_to_frontend=False,
+            ),
+        )
+    assert exc_info.value.status_code == 400
+    assert exc_info.value.detail["error_code"] == "invalid_oauth_state"
+
+
 def test_build_frontend_redirect_helpers():
     token = oauth_external.schemas.Token(
         access_token="access",
@@ -1078,3 +1142,50 @@ def test_build_frontend_success_redirect_without_refresh_token():
 def test_build_frontend_link_redirect():
     redirect = oauth_external.build_frontend_link_redirect("github")
     assert redirect == "/#provider=github&linked=true"
+
+
+def test_build_frontend_redirect_allows_absolute_url_for_allowed_origin(monkeypatch):
+    monkeypatch.setattr(
+        settings, "oauth_frontend_callback_url", "http://localhost:3000/oauth/callback"
+    )
+    redirect = oauth_external.build_frontend_link_redirect("github")
+    assert redirect.startswith("http://localhost:3000/oauth/callback#")
+
+
+def test_build_frontend_redirect_rejects_disallowed_origin(monkeypatch):
+    monkeypatch.setattr(
+        settings, "oauth_frontend_callback_url", "https://evil.example/oauth/callback"
+    )
+    with pytest.raises(HTTPException) as exc_info:
+        oauth_external.build_frontend_link_redirect("github")
+    assert exc_info.value.status_code == 500
+    assert exc_info.value.detail["error_code"] == "oauth_frontend_redirect_not_allowed"
+
+
+def test_build_frontend_redirect_allows_origin_from_public_base(monkeypatch):
+    monkeypatch.setattr(
+        settings, "oauth_frontend_callback_url", "https://api.example.com/frontend/callback"
+    )
+    monkeypatch.setattr(settings, "oauth_public_base_url", "https://api.example.com")
+    monkeypatch.setattr(settings, "cors_origins", ["http://localhost:3000"])
+    redirect = oauth_external.build_frontend_link_redirect("github")
+    assert redirect.startswith("https://api.example.com/frontend/callback#")
+
+
+def test_build_frontend_redirect_rejects_invalid_relative_path(monkeypatch):
+    monkeypatch.setattr(settings, "oauth_frontend_callback_url", "frontend/callback")
+    with pytest.raises(HTTPException) as exc_info:
+        oauth_external.build_frontend_link_redirect("github")
+    assert exc_info.value.status_code == 500
+    assert exc_info.value.detail["error_code"] == "oauth_frontend_redirect_invalid"
+
+
+@pytest.mark.parametrize(
+    "url,expected",
+    [
+        ("https://example.com/path", "https://example.com"),
+        ("/relative/path", None),
+    ],
+)
+def test_origin_from_url(url, expected):
+    assert oauth_external._origin_from_url(url) == expected
