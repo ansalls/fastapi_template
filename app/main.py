@@ -1,8 +1,10 @@
 from __future__ import annotations
 
+from importlib import import_module
 from pathlib import Path
+from pkgutil import iter_modules
 
-from fastapi import FastAPI, HTTPException, Request
+from fastapi import APIRouter, FastAPI, HTTPException, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse
 from fastapi.staticfiles import StaticFiles
@@ -123,9 +125,45 @@ def _include_api_routers() -> None:
     if settings.api_latest_version not in settings.api_supported_versions:
         raise RuntimeError("api_latest_version must be included in api_supported_versions")
 
-    routers = [post.router, user.router, auth.router, vote.router]
+    routers = [post.router, user.router, auth.router, vote.router, *_discover_domain_routers()]
     for router in routers:
         app.include_router(router, prefix=latest_prefix)
+
+
+def _discover_domain_routers(package_name: str = "app.domains") -> list[APIRouter]:
+    try:
+        package = import_module(package_name)
+    except ModuleNotFoundError as exc:
+        if exc.name == package_name:
+            return []
+        raise
+
+    package_paths = getattr(package, "__path__", None)
+    if not package_paths:
+        return []
+
+    routers: list[APIRouter] = []
+    for module_info in sorted(iter_modules(package_paths), key=lambda item: item.name):
+        if not module_info.ispkg:
+            continue
+        module_path = f"{package_name}.{module_info.name}.router"
+        router = _load_optional_domain_router(module_path)
+        if router is not None:
+            routers.append(router)
+    return routers
+
+
+def _load_optional_domain_router(module_path: str) -> APIRouter | None:
+    try:
+        module = import_module(module_path)
+    except ModuleNotFoundError as exc:
+        if exc.name == module_path:
+            return None
+        raise
+    router = getattr(module, "router", None)
+    if isinstance(router, APIRouter):
+        return router
+    return None
 
 
 _include_api_routers()

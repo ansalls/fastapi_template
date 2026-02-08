@@ -1,9 +1,11 @@
 import runpy
 import warnings
 from pathlib import Path
+from types import SimpleNamespace
 
 import pytest
 from app import main
+from fastapi import APIRouter
 from fastapi.testclient import TestClient
 from starlette.middleware.httpsredirect import HTTPSRedirectMiddleware
 
@@ -95,6 +97,123 @@ def test_include_api_routers_rejects_invalid_latest_version(monkeypatch):
         main._include_api_routers()
     monkeypatch.setattr(main.settings, "api_latest_version", "v1")
     monkeypatch.setattr(main.settings, "api_supported_versions", ["v1"])
+
+
+def test_discover_domain_routers_returns_empty_when_package_missing(monkeypatch):
+    package_name = "app.missing_domains"
+
+    def fake_import(module_path: str):
+        exc = ModuleNotFoundError(module_path)
+        exc.name = module_path
+        raise exc
+
+    monkeypatch.setattr(main, "import_module", fake_import)
+    assert main._discover_domain_routers(package_name) == []
+
+
+def test_discover_domain_routers_reraises_unrelated_import_error(monkeypatch):
+    package_name = "app.domains"
+
+    def fake_import(module_path: str):
+        exc = ModuleNotFoundError("redis")
+        exc.name = "redis"
+        raise exc
+
+    monkeypatch.setattr(main, "import_module", fake_import)
+    with pytest.raises(ModuleNotFoundError):
+        main._discover_domain_routers(package_name)
+
+
+def test_discover_domain_routers_returns_empty_for_non_package(monkeypatch):
+    monkeypatch.setattr(main, "import_module", lambda _module_path: object())
+    assert main._discover_domain_routers("app.domains") == []
+
+
+def test_discover_domain_routers_collects_sorted_package_routers(monkeypatch):
+    package = SimpleNamespace(__path__=["/tmp/domains"])
+    expected_alpha = APIRouter(prefix="/alpha")
+    expected_zeta = APIRouter(prefix="/zeta")
+
+    monkeypatch.setattr(main, "import_module", lambda _module_path: package)
+    monkeypatch.setattr(
+        main,
+        "iter_modules",
+        lambda _paths: [
+            SimpleNamespace(name="zeta", ispkg=True),
+            SimpleNamespace(name="ignore_file", ispkg=False),
+            SimpleNamespace(name="alpha", ispkg=True),
+        ],
+    )
+    monkeypatch.setattr(
+        main,
+        "_load_optional_domain_router",
+        lambda module_path: {
+            "app.domains.alpha.router": expected_alpha,
+            "app.domains.zeta.router": expected_zeta,
+        }.get(module_path),
+    )
+    routers = main._discover_domain_routers("app.domains")
+    assert routers == [expected_alpha, expected_zeta]
+
+
+def test_discover_domain_routers_skips_packages_without_router(monkeypatch):
+    package = SimpleNamespace(__path__=["/tmp/domains"])
+    expected_alpha = APIRouter(prefix="/alpha")
+
+    monkeypatch.setattr(main, "import_module", lambda _module_path: package)
+    monkeypatch.setattr(
+        main,
+        "iter_modules",
+        lambda _paths: [
+            SimpleNamespace(name="alpha", ispkg=True),
+            SimpleNamespace(name="beta", ispkg=True),
+        ],
+    )
+    monkeypatch.setattr(
+        main,
+        "_load_optional_domain_router",
+        lambda module_path: expected_alpha
+        if module_path == "app.domains.alpha.router"
+        else None,
+    )
+    routers = main._discover_domain_routers("app.domains")
+    assert routers == [expected_alpha]
+
+
+def test_load_optional_domain_router_returns_none_when_router_module_missing(monkeypatch):
+    module_path = "app.domains.billing.router"
+
+    def fake_import(_module_path: str):
+        exc = ModuleNotFoundError(module_path)
+        exc.name = module_path
+        raise exc
+
+    monkeypatch.setattr(main, "import_module", fake_import)
+    assert main._load_optional_domain_router(module_path) is None
+
+
+def test_load_optional_domain_router_reraises_unrelated_import_error(monkeypatch):
+    module_path = "app.domains.billing.router"
+
+    def fake_import(_module_path: str):
+        exc = ModuleNotFoundError("dependency")
+        exc.name = "dependency"
+        raise exc
+
+    monkeypatch.setattr(main, "import_module", fake_import)
+    with pytest.raises(ModuleNotFoundError):
+        main._load_optional_domain_router(module_path)
+
+
+def test_load_optional_domain_router_returns_router_instance(monkeypatch):
+    router = APIRouter(prefix="/billing")
+    monkeypatch.setattr(main, "import_module", lambda _module_path: SimpleNamespace(router=router))
+    assert main._load_optional_domain_router("app.domains.billing.router") is router
+
+
+def test_load_optional_domain_router_returns_none_for_non_router_attribute(monkeypatch):
+    monkeypatch.setattr(main, "import_module", lambda _module_path: SimpleNamespace(router="not-router"))
+    assert main._load_optional_domain_router("app.domains.billing.router") is None
 
 
 def test_main_module_adds_https_redirect_middleware_when_enabled(monkeypatch):

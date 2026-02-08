@@ -1,31 +1,72 @@
 # AI Change Checklist
 
-Use this checklist before merging AI-assisted changes.
+Use this checklist for any AI-assisted change in this template.
 
-- Scope:
-  - Confirm the change request and success criteria are explicit.
-  - Confirm whether change is backward-compatible or breaking.
+## 1) Clarify Scope First
 
-- Data and Contracts:
-  - Update `app/schemas.py` if API contracts changed.
-  - Add/update Alembic migrations if schema changed.
-  - Validate auth/ownership behavior for protected endpoints.
+- Confirm user-visible outcome in one sentence.
+- Confirm if the change is:
+  - additive (preferred)
+  - backward-compatible update
+  - breaking change
+- Identify which layer changes:
+  - API contract
+  - database schema
+  - auth/security
+  - background job flow
+  - frontend UX
 
-- Code Quality:
-  - `make lint`
-  - `make typecheck`
-  - `make test`
+## 2) Respect Template Architecture
 
-- Tests:
-  - Add unit tests for pure logic branches.
-  - Add/adjust integration tests for API + DB behavior.
-  - Add/adjust e2e test for user-visible workflow changes.
+- Keep platform core stable unless explicitly requested:
+  - auth, OAuth, error contracts, security middleware, rate limiting, observability.
+- Add product features in extension paths:
+  - `app/domains/<domain>/...`
+- Prefer composition over rewriting shared infrastructure.
 
-- Docs:
-  - Update `README.md` for setup/runtime changes.
-  - Update `ARCHITECTURE.md` for structural changes.
-  - Record significant tradeoffs in the PR or relevant architecture docs.
+## 3) Data and Contract Safety
 
-- Ops:
-  - Verify container and CI config still match runtime assumptions.
-  - Ensure secrets/config behavior remains environment-driven.
+- Update Pydantic schemas when API payloads/responses change.
+- Add Alembic migration for any schema changes.
+- Validate auth and ownership behavior for protected routes.
+- Preserve RFC 7807 error format.
+
+## 4) Security and Production Guardrails
+
+- No hardcoded secrets, keys, tokens, or environment-specific endpoints.
+- Keep environment-driven configuration in `app/config.py` and `.env`.
+- Preserve no-store behavior on auth responses.
+- Preserve trusted-host, CSP, and rate-limit behavior unless intentionally changed.
+- Run `make audit-security` after dependency changes.
+
+## 5) Testing Requirements
+
+- Add unit tests for new logic branches.
+- Add/adjust integration tests for API + DB behavior.
+- Add/adjust security tests for auth/protection rules.
+- Add e2e coverage when user workflows change.
+- Keep `app/` coverage at 100%.
+
+## 6) Developer Experience Requirements
+
+- Prefer new commands/scripts over manual multistep workflows.
+- Add or update Make targets for recurring workflows.
+- Keep onboarding path clear and minimal.
+- If introducing a new pattern, provide a scaffold or concrete example.
+
+## 7) Documentation and AI Readiness
+
+- Update `README.md` for setup/run/customization impact.
+- Update `ARCHITECTURE.md` for structural or flow changes.
+- Update `AGENTS.md` when AI implementation guidance changes.
+- Include clear migration notes for any breaking changes.
+
+## 8) Final Validation Gate
+
+Run all of:
+- `make lint`
+- `make typecheck`
+- `make audit-security`
+- `make test`
+
+Do not conclude work until all pass, or explicitly report blockers.

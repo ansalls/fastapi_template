@@ -16,6 +16,7 @@ This repository is a FastAPI-first full-stack starter template focused on:
   - `app/routers/user.py`
   - `app/routers/post.py`
   - `app/routers/vote.py`
+  - `app/domains/*/router.py` (auto-discovered domain routers)
 - Auth/JWT services: `app/oauth2.py`
 - OAuth provider orchestration: `app/oauth_external.py`
 - Error contracts (RFC 7807): `app/errors.py`
@@ -36,6 +37,7 @@ Worker scaffold:
 - Response headers:
   - `X-API-Version`
   - `X-API-Version-Defaulted` when version was inferred
+- Domain extension routers are mounted under the same `/api/v1/*` prefix.
 
 ## Authentication and Session Flow
 
