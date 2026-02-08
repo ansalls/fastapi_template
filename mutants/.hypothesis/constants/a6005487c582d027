@@ -1,0 +1,4 @@
+# file: /Users/tony/Desktop/Code/Projects/fastapi_template/mutants/app/main.py
+# hypothesis_version: 6.141.1
+
+['*', '/', '/health', '/static', 'frontend', 'index.html', 'message', 'ok', 'static', 'status']

@@ -5,8 +5,8 @@ from pydantic import BaseModel, ConfigDict, EmailStr, Field
 
 
 class PostBase(BaseModel):
-    title: Annotated[str, Field(min_length=1, max_length=200)]
-    content: Annotated[str, Field(min_length=1, max_length=10_000)]
+    title: str
+    content: str
     published: bool = True
 
 
@@ -40,7 +40,7 @@ class PostOut(BaseModel):
 
 class UserCreate(BaseModel):
     email: EmailStr
-    password: Annotated[str, Field(min_length=8, max_length=128)]
+    password: str
 
 
 class UserLogin(BaseModel):
@@ -58,5 +58,5 @@ class TokenData(BaseModel):
 
 
 class Vote(BaseModel):
-    post_id: Annotated[int, Field(gt=0)]
+    post_id: int
     dir: Annotated[int, Field(ge=0, le=1)]

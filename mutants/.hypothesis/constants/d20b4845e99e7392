@@ -1,0 +1,4 @@
+# file: /Users/tony/Desktop/Code/Projects/fastapi_template/mutants/app/oauth2.py
+# hypothesis_version: 6.141.1
+
+['Bearer', 'WWW-Authenticate', 'exp', 'login', 'user_id']

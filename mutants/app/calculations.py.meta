@@ -1,0 +1,23 @@
+{
+    "exit_code_by_key": {
+        "app.calculations.x_add__mutmut_1": null,
+        "app.calculations.x_subtract__mutmut_1": null,
+        "app.calculations.x_multiply__mutmut_1": null,
+        "app.calculations.x_divide__mutmut_1": null,
+        "app.calculations.x\u01c1BankAccount\u01c1__init____mutmut_1": null,
+        "app.calculations.x\u01c1BankAccount\u01c1__init____mutmut_2": null,
+        "app.calculations.x\u01c1BankAccount\u01c1deposit__mutmut_1": null,
+        "app.calculations.x\u01c1BankAccount\u01c1deposit__mutmut_2": null,
+        "app.calculations.x\u01c1BankAccount\u01c1withdraw__mutmut_1": null,
+        "app.calculations.x\u01c1BankAccount\u01c1withdraw__mutmut_2": null,
+        "app.calculations.x\u01c1BankAccount\u01c1withdraw__mutmut_3": null,
+        "app.calculations.x\u01c1BankAccount\u01c1withdraw__mutmut_4": null,
+        "app.calculations.x\u01c1BankAccount\u01c1withdraw__mutmut_5": null,
+        "app.calculations.x\u01c1BankAccount\u01c1withdraw__mutmut_6": null,
+        "app.calculations.x\u01c1BankAccount\u01c1withdraw__mutmut_7": null,
+        "app.calculations.x\u01c1BankAccount\u01c1collect_interest__mutmut_1": null,
+        "app.calculations.x\u01c1BankAccount\u01c1collect_interest__mutmut_2": null,
+        "app.calculations.x\u01c1BankAccount\u01c1collect_interest__mutmut_3": null
+    },
+    "hash_by_function_name": {}
+}

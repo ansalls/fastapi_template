@@ -1,0 +1,4 @@
+# file: /Users/tony/Desktop/Code/Projects/fastapi_template/mutants/app/routers/vote.py
+# hypothesis_version: 6.141.1
+
+['/', '/vote', 'Vote', 'Vote does not exist', 'message']

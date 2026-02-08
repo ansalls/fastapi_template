@@ -1,0 +1,4 @@
+# file: /Users/tony/Desktop/Code/Projects/fastapi_template/app/models.py
+# hypothesis_version: 6.141.1
+
+['CASCADE', 'TRUE', 'User', 'now()', 'posts', 'posts.id', 'users', 'users.id', 'votes']

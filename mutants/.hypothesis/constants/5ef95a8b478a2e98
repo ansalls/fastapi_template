@@ -1,0 +1,4 @@
+# file: /Users/tony/Desktop/Code/Projects/fastapi_template/mutants/app/config.py
+# hypothesis_version: 6.141.1
+
+[5432, '.env', 'HS256', 'fastapi', 'ignore', 'localhost', 'password123', 'postgres']

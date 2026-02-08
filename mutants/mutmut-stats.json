@@ -1,0 +1,32 @@
+{
+    "tests_by_mangled_function_name": {},
+    "duration_by_test": {
+        "tests/test_calculations.py::test_add[3-2-5]": 0.00011799999999984045,
+        "tests/test_calculations.py::test_add[7-1-8]": 9.808299999991554e-05,
+        "tests/test_calculations.py::test_add[12-4-16]": 9.308299999988279e-05,
+        "tests/test_calculations.py::test_subtract": 7.145800000007974e-05,
+        "tests/test_calculations.py::test_multiply": 7.679099999990946e-05,
+        "tests/test_calculations.py::test_divde": 7.091699999994816e-05,
+        "tests/test_calculations.py::test_bank_set_initial_amount": 7.899999999994023e-05,
+        "tests/test_calculations.py::test_bank_default_amount": 8.166600000003577e-05,
+        "tests/test_calculations.py::test_withdraw": 8.066699999997873e-05,
+        "tests/test_calculations.py::test_deposit": 8.091700000001367e-05,
+        "tests/test_calculations.py::test_collect_interest": 8.137500000016118e-05,
+        "tests/test_calculations.py::test_bank_transaction[200-100-100]": 9.633399999997572e-05,
+        "tests/test_calculations.py::test_bank_transaction[50-10-40]": 9.937500000001265e-05,
+        "tests/test_calculations.py::test_bank_transaction[1200-200-1000]": 9.658300000014997e-05,
+        "tests/test_calculations.py::test_insufficient_funds": 8.329200000001258e-05,
+        "tests/unit/test_oauth2_unit.py::test_verify_access_token_rejects_missing_user_id": 0.00012929200000000307,
+        "tests/unit/test_oauth2_unit.py::test_verify_access_token_rejects_invalid_token": 8.83750000000294e-05,
+        "tests/unit/test_oauth2_unit.py::test_get_current_user_rejects_unknown_user": 8.750000000001812e-05,
+        "tests/property/test_calculations_property.py::test_add_is_commutative": 0.00011337499999997114,
+        "tests/property/test_calculations_property.py::test_multiply_is_commutative": 0.0001330829999999228,
+        "tests/property/test_calculations_property.py::test_subtract_reverses_add": 0.00027650000000001285,
+        "tests/property/test_calculations_property.py::test_divide_reverses_multiply_for_non_zero": 0.00015941600000002332,
+        "tests/property/test_calculations_property.py::test_deposit_and_withdraw_same_amount_preserves_balance": 0.00012333299999989222,
+        "tests/property/test_calculations_property.py::test_withdraw_more_than_balance_raises": 0.00012679199999987567,
+        "tests/property/test_auth_property.py::test_access_token_roundtrip_preserves_user_id": 0.00012187500000004903,
+        "tests/property/test_auth_property.py::test_random_non_jwt_tokens_are_rejected": 0.00011562500000028564
+    },
+    "stats_time": 2.9249549999999997
+}

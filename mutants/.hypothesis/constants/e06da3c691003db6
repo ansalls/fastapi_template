@@ -1,0 +1,4 @@
+# file: /Users/tony/Desktop/Code/Projects/fastapi_template/mutants/app/utils.py
+# hypothesis_version: 6.141.1
+
+['auto', 'bcrypt']
