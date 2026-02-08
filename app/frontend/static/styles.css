@@ -74,6 +74,25 @@ h2 {
   padding: 0.4rem 0.8rem;
 }
 
+.oauth-providers {
+  display: flex;
+  gap: 0.6rem;
+  flex-wrap: wrap;
+}
+
+.oauth-link {
+  text-decoration: none;
+  color: var(--ink);
+  background: #fff;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  padding: 0.45rem 0.85rem;
+}
+
+.oauth-link:hover {
+  border-color: var(--accent);
+}
+
 .card {
   background: var(--paper);
   border: 1px solid var(--line);

@@ -5,6 +5,7 @@ const refreshButton = document.getElementById("refresh-posts");
 const tokenOutput = document.getElementById("token-output");
 const postList = document.getElementById("post-list");
 const logBox = document.getElementById("log");
+const oauthProviders = document.getElementById("oauth-providers");
 
 const tokenStoreKey = "fastapi_template_token";
 
@@ -15,6 +16,12 @@ function getToken() {
 function setToken(token) {
   window.localStorage.setItem(tokenStoreKey, token);
   tokenOutput.value = token;
+}
+
+function clearAuthHash() {
+  if (window.location.hash) {
+    history.replaceState(null, "", window.location.pathname + window.location.search);
+  }
 }
 
 function log(message) {
@@ -54,6 +61,62 @@ function renderPosts(posts) {
     `;
     postList.appendChild(li);
   }
+}
+
+function renderOAuthProviders(providers) {
+  oauthProviders.innerHTML = "";
+  if (!providers.length) {
+    oauthProviders.textContent = "No OAuth providers configured.";
+    return;
+  }
+
+  for (const provider of providers) {
+    const link = document.createElement("a");
+    link.href = provider.start_url;
+    link.className = "oauth-link";
+    link.textContent = `Continue with ${provider.display_name}`;
+    oauthProviders.appendChild(link);
+  }
+}
+
+async function loadOAuthProviders() {
+  try {
+    const response = await fetch("/api/v1/auth/oauth/providers");
+    if (!response.ok) {
+      throw new Error(`HTTP ${response.status}`);
+    }
+    const payload = await response.json();
+    renderOAuthProviders(payload.providers || []);
+  } catch (error) {
+    oauthProviders.textContent = "Could not load OAuth providers.";
+    log(`OAuth provider list failed: ${error.message}`);
+  }
+}
+
+async function handleOAuthCallbackHash() {
+  if (!window.location.hash) {
+    return;
+  }
+
+  const params = new URLSearchParams(window.location.hash.slice(1));
+  const oauthError = params.get("error");
+  const provider = params.get("provider") || "provider";
+  const accessToken = params.get("access_token");
+
+  if (oauthError) {
+    log(`OAuth login failed (${provider}): ${oauthError}`);
+    clearAuthHash();
+    return;
+  }
+
+  if (!accessToken) {
+    return;
+  }
+
+  setToken(accessToken);
+  log(`Logged in with ${provider}.`);
+  clearAuthHash();
+  await loadPosts();
 }
 
 async function loadPosts() {
@@ -134,6 +197,9 @@ postForm.addEventListener("submit", async (event) => {
 refreshButton.addEventListener("click", loadPosts);
 
 setToken(getToken());
-if (getToken()) {
-  loadPosts();
-}
+loadOAuthProviders();
+handleOAuthCallbackHash().then(() => {
+  if (getToken()) {
+    loadPosts();
+  }
+});

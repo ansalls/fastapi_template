@@ -17,6 +17,7 @@ This repository is a FastAPI-first full-stack starter template focused on:
   - `app/routers/post.py`
   - `app/routers/vote.py`
 - Auth/JWT services: `app/oauth2.py`
+- OAuth provider orchestration: `app/oauth_external.py`
 - Error contracts (RFC 7807): `app/errors.py`
 - Rate limiting: `app/rate_limit.py` + `app/redis_client.py`
 - Health/readiness checks: `app/health.py`
@@ -46,6 +47,10 @@ Worker scaffold:
 3. Refresh token metadata is persisted in `refresh_tokens`.
 4. `POST /api/v1/auth/refresh` rotates refresh tokens and revokes the previous one.
 5. `POST /api/v1/auth/logout` revokes refresh token session state.
+6. OAuth login is supported via:
+   - `GET /api/v1/auth/oauth/providers`
+   - `GET /api/v1/auth/oauth/{provider}/start`
+   - `GET|POST /api/v1/auth/oauth/{provider}/callback`
 
 ## Error Contract
 
@@ -71,6 +76,7 @@ Worker scaffold:
 - Alembic migrations are source of truth for schema evolution.
 - New tables:
   - `refresh_tokens` for auth lifecycle state
+  - `oauth_accounts` for provider-subject to local-user identity mapping
   - `outbox_events` for asynchronous event handoff
 - Outbox events are created transactionally in write paths and dispatched by worker processes.
 - Worker hardening includes scheduled dispatch cadence and retry/backoff controls.

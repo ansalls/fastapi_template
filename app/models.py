@@ -1,6 +1,14 @@
 import uuid
 
-from sqlalchemy import JSON, Boolean, Column, ForeignKey, Integer, String
+from sqlalchemy import (
+    JSON,
+    Boolean,
+    Column,
+    ForeignKey,
+    Integer,
+    String,
+    UniqueConstraint,
+)
 from sqlalchemy.orm import relationship
 from sqlalchemy.sql.expression import text
 from sqlalchemy.sql.sqltypes import TIMESTAMP
@@ -36,6 +44,9 @@ class User(Base):
     posts = relationship("Post", back_populates="owner", cascade="all, delete-orphan")
     refresh_tokens = relationship(
         "RefreshToken", back_populates="user", cascade="all, delete-orphan"
+    )
+    oauth_accounts = relationship(
+        "OAuthAccount", back_populates="user", cascade="all, delete-orphan"
     )
 
 
@@ -84,3 +95,26 @@ class OutboxEvent(Base):
         TIMESTAMP(timezone=True), nullable=False, server_default=text("now()")
     )
     processed_at = Column(TIMESTAMP(timezone=True), nullable=True)
+
+
+class OAuthAccount(Base):
+    __tablename__ = "oauth_accounts"
+    __table_args__ = (
+        UniqueConstraint(
+            "provider", "provider_subject", name="uq_oauth_accounts_provider_subject"
+        ),
+    )
+
+    id = Column(Integer, primary_key=True, nullable=False)
+    user_id = Column(Integer, ForeignKey("users.id", ondelete="CASCADE"), nullable=False)
+    provider = Column(String, nullable=False, index=True)
+    provider_subject = Column(String, nullable=False)
+    provider_email = Column(String, nullable=True)
+    created_at = Column(
+        TIMESTAMP(timezone=True), nullable=False, server_default=text("now()")
+    )
+    last_login_at = Column(
+        TIMESTAMP(timezone=True), nullable=False, server_default=text("now()")
+    )
+
+    user = relationship("User", back_populates="oauth_accounts")

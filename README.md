@@ -3,6 +3,7 @@
 Production-oriented FastAPI starter with:
 - PostgreSQL persistence and Alembic migrations
 - JWT auth with access + rotating refresh tokens
+- OAuth login for Google, Microsoft, Apple, Facebook, and GitHub
 - Refresh-token revocation tracking
 - RFC 7807 Problem Details error responses
 - API versioning via path (`/api/v1`) with latest-default alias (`/api/*`)
@@ -44,6 +45,8 @@ Recommended production variables:
 - `RATE_LIMIT_FAIL_OPEN` (typically `false`)
 - `OUTBOX_RETRY_MAX_ATTEMPTS`
 - `OUTBOX_RETRY_BACKOFF_SECONDS`
+- OAuth provider credentials (`OAUTH_*_CLIENT_ID`, `OAUTH_*_CLIENT_SECRET`)
+- `OAUTH_PUBLIC_BASE_URL` when running behind a reverse proxy
 3. Create databases:
 - App DB: `fastapi` (or your configured name)
 - Test DB: `<DATABASE_NAME>_test`
@@ -74,6 +77,10 @@ uvicorn app.main:app --reload
   - `token_type`
 - `POST /api/v1/auth/refresh` rotates refresh tokens and returns a new token pair.
 - `POST /api/v1/auth/logout` revokes a refresh token.
+- OAuth endpoints:
+  - `GET /api/v1/auth/oauth/providers`
+  - `GET /api/v1/auth/oauth/{provider}/start`
+  - `GET|POST /api/v1/auth/oauth/{provider}/callback`
 
 ## Runtime Endpoints
 

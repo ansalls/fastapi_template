@@ -55,6 +55,21 @@ class Settings(BaseSettings):
     outbox_retry_backoff_seconds: int = 30
     outbox_dispatch_interval_seconds: int = 15
 
+    # OAuth / third-party login
+    oauth_state_expire_seconds: int = 300
+    oauth_public_base_url: Optional[str] = None
+    oauth_frontend_callback_url: str = "/"
+    oauth_google_client_id: Optional[str] = None
+    oauth_google_client_secret: Optional[str] = None
+    oauth_microsoft_client_id: Optional[str] = None
+    oauth_microsoft_client_secret: Optional[str] = None
+    oauth_apple_client_id: Optional[str] = None
+    oauth_apple_client_secret: Optional[str] = None
+    oauth_facebook_client_id: Optional[str] = None
+    oauth_facebook_client_secret: Optional[str] = None
+    oauth_github_client_id: Optional[str] = None
+    oauth_github_client_secret: Optional[str] = None
+
     # CORS
     cors_origins: list[str] = [
         "http://localhost:3000",

@@ -65,3 +65,13 @@ class RefreshTokenRequest(BaseModel):
 class Vote(BaseModel):
     post_id: Annotated[int, Field(gt=0)]
     dir: Annotated[int, Field(ge=0, le=1)]
+
+
+class OAuthProvider(BaseModel):
+    provider: str
+    display_name: str
+    start_url: str
+
+
+class OAuthProvidersResponse(BaseModel):
+    providers: list[OAuthProvider]
