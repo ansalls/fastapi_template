@@ -1,0 +1,23 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: fastapi-template-worker
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: fastapi-template-worker
+  template:
+    metadata:
+      labels:
+        app: fastapi-template-worker
+    spec:
+      containers:
+      - name: worker
+        image: fastapi-template:latest
+        command: ["arq", "worker.arq_worker.WorkerSettings"]
+        envFrom:
+        - secretRef:
+            name: fastapi-template-secrets
+        - configMapRef:
+            name: fastapi-template-config

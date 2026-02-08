@@ -12,9 +12,33 @@ services:
       SECRET_KEY: ${SECRET_KEY}
       ALGORITHM: ${ALGORITHM}
       ACCESS_TOKEN_EXPIRE_MINUTES: ${ACCESS_TOKEN_EXPIRE_MINUTES}
+      REDIS_URL: ${REDIS_URL}
+      ENABLE_OPTIONAL_BACKGROUND_JOBS: ${ENABLE_OPTIONAL_BACKGROUND_JOBS:-true}
     depends_on:
       postgres:
         condition: service_healthy
+      redis:
+        condition: service_started
+
+  worker:
+    image: ${API_IMAGE:-sloppynetworks/fastapi-app:latest}
+    environment:
+      DATABASE_HOSTNAME: ${DATABASE_HOSTNAME}
+      DATABASE_PORT: ${DATABASE_PORT}
+      DATABASE_PASSWORD: ${DATABASE_PASSWORD}
+      DATABASE_NAME: ${DATABASE_NAME}
+      DATABASE_USERNAME: ${DATABASE_USERNAME}
+      SECRET_KEY: ${SECRET_KEY}
+      ALGORITHM: ${ALGORITHM}
+      ACCESS_TOKEN_EXPIRE_MINUTES: ${ACCESS_TOKEN_EXPIRE_MINUTES}
+      REDIS_URL: ${REDIS_URL}
+      ENABLE_OPTIONAL_BACKGROUND_JOBS: ${ENABLE_OPTIONAL_BACKGROUND_JOBS:-true}
+    command: arq worker.arq_worker.WorkerSettings
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_started
 
   postgres:
     image: postgres:16-alpine
@@ -30,5 +54,11 @@ services:
       timeout: 5s
       retries: 5
 
+  redis:
+    image: redis:7-alpine
+    volumes:
+      - redis-data:/data
+
 volumes:
   postgres-db:
+  redis-data:

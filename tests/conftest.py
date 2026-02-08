@@ -29,6 +29,11 @@ def session():
         db.close()
 
 
+@pytest.fixture(autouse=True)
+def disable_rate_limiting_for_tests(monkeypatch):
+    monkeypatch.setattr(settings, "rate_limit_enabled", False)
+
+
 @pytest.fixture()
 def client(session):
     def override_get_db():

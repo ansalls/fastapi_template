@@ -6,6 +6,7 @@ PYTEST := $(BIN)/pytest
 RUFF := $(BIN)/ruff
 MYPY := $(BIN)/mypy
 PRE_COMMIT := $(BIN)/pre-commit
+UV ?= uv
 
 DATABASE_HOSTNAME ?= localhost
 DATABASE_PORT ?= 5432
@@ -18,12 +19,19 @@ ACCESS_TOKEN_EXPIRE_MINUTES ?= 30
 
 TEST_ENV = DATABASE_HOSTNAME=$(DATABASE_HOSTNAME) DATABASE_PORT=$(DATABASE_PORT) DATABASE_PASSWORD=$(DATABASE_PASSWORD) DATABASE_NAME=$(DATABASE_NAME) DATABASE_USERNAME=$(DATABASE_USERNAME) SECRET_KEY=$(SECRET_KEY) ALGORITHM=$(ALGORITHM) ACCESS_TOKEN_EXPIRE_MINUTES=$(ACCESS_TOKEN_EXPIRE_MINUTES)
 
-.PHONY: setup lint format typecheck test test-unit test-integration test-e2e test-security test-contract test-property ci precommit-install precommit-run
+.PHONY: setup lock lint format typecheck test test-unit test-integration test-e2e test-security test-contract test-property ci precommit-install precommit-run
 
 setup:
-	$(PYTHON) -m venv $(VENV)
-	$(PIP) install --upgrade pip
-	$(PIP) install -r requirements-dev.txt
+	@if command -v $(UV) >/dev/null 2>&1; then \
+		$(UV) sync --group dev; \
+	else \
+		$(PYTHON) -m venv $(VENV); \
+		$(PIP) install --upgrade pip; \
+		$(PIP) install -r requirements-dev.txt; \
+	fi
+
+lock:
+	$(UV) lock
 
 lint:
 	$(RUFF) check app tests

@@ -1,0 +1,32 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: fastapi-template-redis
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: fastapi-template-redis
+  template:
+    metadata:
+      labels:
+        app: fastapi-template-redis
+    spec:
+      containers:
+      - name: redis
+        image: redis:7-alpine
+        ports:
+        - containerPort: 6379
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: fastapi-template-redis
+spec:
+  selector:
+    app: fastapi-template-redis
+  ports:
+  - port: 6379
+    targetPort: 6379
+    protocol: TCP
+  type: ClusterIP

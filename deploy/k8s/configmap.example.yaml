@@ -1,0 +1,16 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: fastapi-template-config
+data:
+  DATABASE_HOSTNAME: "postgres"
+  DATABASE_PORT: "5432"
+  DATABASE_NAME: "fastapi"
+  DATABASE_USERNAME: "postgres"
+  REDIS_URL: "redis://fastapi-template-redis:6379/0"
+  ACCESS_TOKEN_EXPIRE_MINUTES: "30"
+  REFRESH_TOKEN_EXPIRE_DAYS: "30"
+  API_LATEST_VERSION: "v1"
+  RATE_LIMIT_ENABLED: "true"
+  METRICS_ENABLED: "true"
+  OTEL_SERVICE_NAME: "fastapi-template"

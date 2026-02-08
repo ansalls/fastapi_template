@@ -1,14 +1,16 @@
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, Response, status
 from fastapi.security.oauth2 import OAuth2PasswordRequestForm
 from sqlalchemy.orm import Session
 
 from .. import database, models, oauth2, schemas, utils
+from ..rate_limit import rate_limit_dependency
 
 router = APIRouter(tags=["Authentication"])
 
 
 @router.post("/login", response_model=schemas.Token)
 def login(
+    _: None = rate_limit_dependency("auth_login"),
     user_credentials: OAuth2PasswordRequestForm = Depends(),
     db: Session = Depends(database.get_db),
 ):
@@ -28,5 +30,23 @@ def login(
             status_code=status.HTTP_403_FORBIDDEN, detail="Invalid Credentials"
         )
 
-    access_token = oauth2.create_access_token(data={"user_id": user.id})
-    return {"access_token": access_token, "token_type": "bearer"}
+    return oauth2.issue_token_pair(db, int(user.id))
+
+
+@router.post("/auth/refresh", response_model=schemas.Token)
+def refresh(
+    payload: schemas.RefreshTokenRequest,
+    _: None = rate_limit_dependency("auth_login"),
+    db: Session = Depends(database.get_db),
+):
+    return oauth2.rotate_refresh_token(db, payload.refresh_token)
+
+
+@router.post("/auth/logout", status_code=status.HTTP_204_NO_CONTENT)
+def logout(
+    payload: schemas.RefreshTokenRequest,
+    _: None = rate_limit_dependency("auth_login"),
+    db: Session = Depends(database.get_db),
+):
+    oauth2.revoke_refresh_token(db, payload.refresh_token)
+    return Response(status_code=status.HTTP_204_NO_CONTENT)

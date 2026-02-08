@@ -1,0 +1,36 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: fastapi-template-api
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: fastapi-template-api
+  template:
+    metadata:
+      labels:
+        app: fastapi-template-api
+    spec:
+      containers:
+      - name: api
+        image: fastapi-template:latest
+        ports:
+        - containerPort: 8000
+        envFrom:
+        - secretRef:
+            name: fastapi-template-secrets
+        - configMapRef:
+            name: fastapi-template-config
+        readinessProbe:
+          httpGet:
+            path: /ready
+            port: 8000
+          initialDelaySeconds: 5
+          periodSeconds: 10
+        livenessProbe:
+          httpGet:
+            path: /health
+            port: 8000
+          initialDelaySeconds: 10
+          periodSeconds: 15

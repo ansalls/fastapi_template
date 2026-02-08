@@ -2,6 +2,8 @@ from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
 
 from .. import database, models, oauth2, schemas
+from ..outbox import enqueue_outbox_event
+from ..rate_limit import rate_limit_dependency
 
 router = APIRouter(prefix="/vote", tags=["Vote"])
 
@@ -9,6 +11,7 @@ router = APIRouter(prefix="/vote", tags=["Vote"])
 @router.post("/", status_code=status.HTTP_201_CREATED)
 def vote(
     vote: schemas.Vote,
+    _: None = rate_limit_dependency("api_write"),
     db: Session = Depends(database.get_db),
     current_user: models.User = Depends(oauth2.get_current_user),
 ):
@@ -33,6 +36,11 @@ def vote(
             )
         new_vote = models.Vote(post_id=vote.post_id, user_id=current_user.id)
         db.add(new_vote)
+        enqueue_outbox_event(
+            db,
+            topic="vote.created",
+            payload={"post_id": vote.post_id, "user_id": current_user.id},
+        )
         db.commit()
         return {"message": "successfully added vote"}
     else:
@@ -42,5 +50,10 @@ def vote(
             )
 
         vote_query.delete(synchronize_session=False)
+        enqueue_outbox_event(
+            db,
+            topic="vote.deleted",
+            payload={"post_id": vote.post_id, "user_id": current_user.id},
+        )
         db.commit()
         return {"message": "successfully deleted vote"}

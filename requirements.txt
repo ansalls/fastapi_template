@@ -11,3 +11,12 @@ python-multipart==0.0.20
 SQLAlchemy==2.0.46
 psycopg[binary]==3.2.13
 uvicorn[standard]==0.39.0
+redis==5.3.1
+arq==0.26.3
+prometheus-fastapi-instrumentator==7.1.0
+sentry-sdk[fastapi]==2.44.0
+opentelemetry-api==1.38.0
+opentelemetry-sdk==1.38.0
+opentelemetry-exporter-otlp-proto-http==1.38.0
+opentelemetry-instrumentation-fastapi==0.59b0
+python-json-logger==4.0.0

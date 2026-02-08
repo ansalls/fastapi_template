@@ -1,67 +1,83 @@
 # FastAPI Template
 
 Production-oriented FastAPI starter with:
-- PostgreSQL persistence
-- JWT-based user authentication
-- Alembic migrations
-- FastAPI route layer (users, auth, posts, votes)
-- Basic built-in browser GUI at `/`
-
-## Project Layout
-
-```
-app/
-  config.py              # settings + env loading
-  database.py            # SQLAlchemy engine/session
-  models.py              # ORM models
-  schemas.py             # Pydantic request/response models
-  oauth2.py              # JWT create/verify + current user dependency
-  routers/               # API route modules
-  frontend/              # basic browser UI
-alembic/                 # migrations
-tests/                   # pytest suite
-```
+- PostgreSQL persistence and Alembic migrations
+- JWT auth with access + rotating refresh tokens
+- Refresh-token revocation tracking
+- RFC 7807 Problem Details error responses
+- API versioning via path (`/api/v1`) with latest-default aliases (`/api/*` and legacy unversioned paths)
+- Redis-backed rate limiting
+- Outbox model + ARQ worker scaffold for background jobs
+- Observability hooks (Prometheus metrics, OpenTelemetry, Sentry)
+- Minimal built-in browser GUI at `/`
 
 ## Prerequisites
 
 - Python 3.14+ recommended
 - PostgreSQL 15+ recommended
+- Redis 7+ recommended
+
+## Dependency Management
+
+This template is configured for `uv`-based workflows.
+
+```bash
+make setup
+```
+
+`make setup` uses `uv sync --group dev` when `uv` is installed and falls back to `pip` + `requirements-dev.txt` otherwise.
 
 ## Local Setup
 
-1. Create and activate a virtual environment.
-2. Install dependencies:
-
-```bash
-pip install -r requirements-dev.txt
-```
-
-3. Copy environment variables:
+1. Copy environment variables:
 
 ```bash
 cp .env.example .env
 ```
 
-4. Update `.env` values for your database and secrets.
-5. Create the database:
+2. Update `.env` values (DB, Redis, secrets, optional observability settings).
+3. Create databases:
 - App DB: `fastapi` (or your configured name)
 - Test DB: `<DATABASE_NAME>_test`
-
-6. Run migrations:
+4. Run migrations:
 
 ```bash
 alembic upgrade head
 ```
 
-7. Start the app:
+5. Start the API:
 
 ```bash
 uvicorn app.main:app --reload
 ```
 
-## Developer Workflow
+## API Versioning
 
-The template includes a `Makefile` for common workflows:
+- Preferred versioned routes: `/api/v1/...`
+- Latest-default alias: `/api/...`
+- Legacy unversioned routes remain available for backward compatibility.
+- Responses include `X-API-Version`.
+- If defaulted, responses include `X-API-Version-Defaulted: true`.
+
+## Auth Lifecycle
+
+- `POST /login` returns:
+  - `access_token`
+  - `refresh_token`
+  - `token_type`
+- `POST /auth/refresh` rotates refresh tokens and returns a new token pair.
+- `POST /auth/logout` revokes a refresh token.
+
+## Runtime Endpoints
+
+- GUI: `http://127.0.0.1:8000/`
+- Swagger: `http://127.0.0.1:8000/docs`
+- ReDoc: `http://127.0.0.1:8000/redoc`
+- Liveness: `GET /health`
+- Readiness: `GET /ready`
+- Metrics: `GET /metrics`
+
+## Developer Workflow
 
 ```bash
 make lint
@@ -69,55 +85,51 @@ make typecheck
 make test
 ```
 
-Install pre-commit hooks:
+Install hooks:
 
 ```bash
 make precommit-install
 ```
 
-## What To Open
-
-- GUI: `http://127.0.0.1:8000/`
-- Swagger docs: `http://127.0.0.1:8000/docs`
-- ReDoc: `http://127.0.0.1:8000/redoc`
-
-## Running Tests
+## Tests
 
 ```bash
 make test
 ```
 
-Tests include unit, integration, and end-to-end coverage. They expect a reachable PostgreSQL instance using the configured env values and will use `<DATABASE_NAME>_test` plus an isolated temporary e2e database.
+Tests include unit, integration, security, contract, property, and e2e lanes, with enforced 100% line+branch coverage for `app/`.
 
-Run a specific lane:
+If your local test DB container is published on a non-default port, set it explicitly:
 
 ```bash
-make test-unit
-make test-integration
-make test-e2e
-make test-security
-make test-contract
-make test-property
+DATABASE_PORT=55432 make test
 ```
 
-## Docker
+## Docker / Deployment Baseline
 
-Dev compose:
+Dev stack (API + worker + Postgres + Redis):
 
 ```bash
 docker compose -f docker-compose-dev.yml up --build
 ```
 
-Prod compose:
+Prod compose baseline:
 
 ```bash
 docker compose -f docker-compose-prod.yml up -d
 ```
 
+Kubernetes baseline manifests are in:
+- `deploy/k8s/api-deployment.yaml`
+- `deploy/k8s/api-service.yaml`
+- `deploy/k8s/worker-deployment.yaml`
+- `deploy/k8s/redis-deployment.yaml`
+- `deploy/k8s/configmap.example.yaml`
+- `deploy/k8s/secret.example.yaml`
+
 ## Notes
 
-- Password hashing currently uses `passlib` + `bcrypt` with a compatibility pin.
-- ORM table creation is migration-driven (`alembic`), not import side effects.
+- Schema evolution is migration-driven (`alembic`), not import side effects.
 - Architectural notes: `ARCHITECTURE.md`
 - Decision log: `DECISIONS.md`
 - AI change checklist: `AI_CHANGE_CHECKLIST.md`

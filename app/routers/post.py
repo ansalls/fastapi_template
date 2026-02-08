@@ -6,12 +6,15 @@ from sqlalchemy.orm import Session
 
 from .. import models, oauth2, schemas
 from ..database import get_db
+from ..outbox import enqueue_outbox_event
+from ..rate_limit import rate_limit_dependency
 
 router = APIRouter(prefix="/posts", tags=["Posts"])
 
 
 @router.get("/", response_model=List[schemas.PostOut])
 def get_posts(
+    _: None = rate_limit_dependency("api_read"),
     db: Session = Depends(get_db),
     current_user: models.User = Depends(oauth2.get_current_user),
     limit: int = Query(default=10, ge=1, le=100),
@@ -48,6 +51,7 @@ def get_posts(
 @router.post("/", status_code=status.HTTP_201_CREATED, response_model=schemas.Post)
 def create_posts(
     post: schemas.PostCreate,
+    _: None = rate_limit_dependency("api_write"),
     db: Session = Depends(get_db),
     current_user: models.User = Depends(oauth2.get_current_user),
 ):
@@ -58,6 +62,12 @@ def create_posts(
 
     new_post = models.Post(owner_id=current_user.id, **post.model_dump())
     db.add(new_post)
+    db.flush()
+    enqueue_outbox_event(
+        db,
+        topic="post.created",
+        payload={"post_id": new_post.id, "owner_id": current_user.id},
+    )
     db.commit()
     db.refresh(new_post)
     return new_post
@@ -66,6 +76,7 @@ def create_posts(
 @router.get("/{id}", response_model=schemas.PostOut)
 def get_post(
     id: int,
+    _: None = rate_limit_dependency("api_read"),
     db: Session = Depends(get_db),
     current_user: models.User = Depends(oauth2.get_current_user),
 ):
@@ -92,6 +103,7 @@ def get_post(
 @router.delete("/{id}", status_code=status.HTTP_204_NO_CONTENT)
 def delete_post(
     id: int,
+    _: None = rate_limit_dependency("api_write"),
     db: Session = Depends(get_db),
     current_user: models.User = Depends(oauth2.get_current_user),
 ):
@@ -114,6 +126,11 @@ def delete_post(
             detail="Not authorized to perform requested action",
         )
 
+    enqueue_outbox_event(
+        db,
+        topic="post.deleted",
+        payload={"post_id": post.id, "owner_id": current_user.id},
+    )
     post_query.delete(synchronize_session=False)
     db.commit()
     return Response(status_code=status.HTTP_204_NO_CONTENT)
@@ -123,6 +140,7 @@ def delete_post(
 def update_post(
     id: int,
     updated_post: schemas.PostCreate,
+    _: None = rate_limit_dependency("api_write"),
     db: Session = Depends(get_db),
     current_user: models.User = Depends(oauth2.get_current_user),
 ):
@@ -149,6 +167,11 @@ def update_post(
     post_query.update(
         cast(dict[Any, Any], updated_post.model_dump()),
         synchronize_session=False,
+    )
+    enqueue_outbox_event(
+        db,
+        topic="post.updated",
+        payload={"post_id": post.id, "owner_id": current_user.id},
     )
     db.commit()
     return post_query.first()

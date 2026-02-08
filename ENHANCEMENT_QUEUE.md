@@ -1,22 +1,37 @@
 # Enhancement Queue
 
-## Group A: Decision-Required
+## Decision-Required Enhancements
 
-These require explicit product/architecture choices before implementation.
+Completed in this iteration:
 
-- API versioning strategy (`/api/v1`, deprecation policy)
-- Error response standard (RFC 7807 shape vs custom envelope)
-- Auth lifecycle (refresh tokens, revocation, session model)
-- Rate limiting policy (limits, storage backend, key strategy)
-- Observability stack (OpenTelemetry exporter, metrics backend, error tracker)
-- Background jobs and reliability pattern (Celery/RQ/Arq, outbox pattern)
-- Deployment target baseline (ECS/K8s/Fly/Render/etc.)
-- Dependency-management model (`uv` vs `pip-tools` vs Poetry)
-- Template modularization plan (core + optional packs)
+- [x] API versioning strategy
+  - Path versioning enabled at `/api/v1`
+  - Latest-default aliases preserved for `/api/*` and legacy unversioned paths
+- [x] Error response standard
+  - RFC 7807 Problem Details for HTTP, validation, and unhandled errors
+- [x] Auth lifecycle
+  - Access + rotating refresh token flow
+  - Refresh token revocation and replacement tracking
+- [x] Rate limiting policy
+  - Redis-backed fixed-window limits
+  - User-id keying with IP fallback
+- [x] Observability stack
+  - Prometheus endpoint (`/metrics`)
+  - OpenTelemetry tracing hook
+  - Sentry hook
+- [x] Background jobs and reliability
+  - Outbox event model
+  - ARQ worker scaffold and compose wiring
+- [x] Deployment baseline
+  - Expanded Compose topology (API + worker + Postgres + Redis)
+  - Kubernetes baseline manifests
+- [x] Dependency management
+  - `uv`-first workflow via `pyproject.toml` and `make setup`
+- [x] Template modularization
+  - Optional feature packs behind config flags
+  - Optionals enabled by default
 
-## Group B: No-Decision Required
-
-These are safe baseline improvements for developer workflow and quality gates.
+## Baseline Enhancements (No Decision Needed)
 
 - [x] Add task runner with standard commands (`Makefile`)
 - [x] Add lint/format/type tooling baseline (`ruff`, `mypy`)
