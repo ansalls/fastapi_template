@@ -1,15 +1,17 @@
 import os
-from pathlib import Path
 import socket
 import subprocess
 import sys
 import time
 import uuid
+from pathlib import Path
 
 import httpx
 import psycopg2
-from psycopg2 import sql
 import pytest
+from psycopg2 import sql
+
+pytestmark = pytest.mark.e2e
 
 
 PROJECT_ROOT = Path(__file__).resolve().parents[2]
@@ -150,9 +152,7 @@ def test_e2e_user_auth_post_vote_flow(e2e_server):
         register = client.post("/users/", json={"email": email, "password": password})
         assert register.status_code == 201
 
-        login = client.post(
-            "/login", data={"username": email, "password": password}
-        )
+        login = client.post("/login", data={"username": email, "password": password})
         assert login.status_code == 200
         token = login.json()["access_token"]
 

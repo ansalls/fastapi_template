@@ -1,10 +1,11 @@
 from datetime import datetime, timedelta, timezone
 
+import pytest
+from app import oauth2
 from fastapi import HTTPException, status
 from jose import jwt
-import pytest
 
-from app import oauth2
+pytestmark = pytest.mark.unit
 
 
 def credentials_exception():
@@ -35,10 +36,24 @@ def test_verify_access_token_rejects_invalid_token():
     assert exc_info.value.status_code == status.HTTP_401_UNAUTHORIZED
 
 
-def test_get_current_user_rejects_unknown_user(session):
+class DummyQuery:
+    def filter(self, *args, **kwargs):
+        return self
+
+    def first(self):
+        return None
+
+
+class DummySession:
+    def query(self, *args, **kwargs):
+        return DummyQuery()
+
+
+def test_get_current_user_rejects_unknown_user():
     token = oauth2.create_access_token({"user_id": 999999})
+    db = DummySession()
 
     with pytest.raises(HTTPException) as exc_info:
-        oauth2.get_current_user(token=token, db=session)
+        oauth2.get_current_user(token=token, db=db)
 
     assert exc_info.value.status_code == status.HTTP_401_UNAUTHORIZED

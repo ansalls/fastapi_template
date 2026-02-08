@@ -59,6 +59,22 @@ alembic upgrade head
 uvicorn app.main:app --reload
 ```
 
+## Developer Workflow
+
+The template includes a `Makefile` for common workflows:
+
+```bash
+make lint
+make typecheck
+make test
+```
+
+Install pre-commit hooks:
+
+```bash
+make precommit-install
+```
+
 ## What To Open
 
 - GUI: `http://127.0.0.1:8000/`
@@ -68,10 +84,18 @@ uvicorn app.main:app --reload
 ## Running Tests
 
 ```bash
-pytest -q --cov=app --cov-branch --cov-report=term-missing --cov-fail-under=100
+make test
 ```
 
 Tests include unit, integration, and end-to-end coverage. They expect a reachable PostgreSQL instance using the configured env values and will use `<DATABASE_NAME>_test` plus an isolated temporary e2e database.
+
+Run a specific lane:
+
+```bash
+make test-unit
+make test-integration
+make test-e2e
+```
 
 ## Docker
 
@@ -91,3 +115,7 @@ docker compose -f docker-compose-prod.yml up -d
 
 - Password hashing currently uses `passlib` + `bcrypt` with a compatibility pin.
 - ORM table creation is migration-driven (`alembic`), not import side effects.
+- Architectural notes: `ARCHITECTURE.md`
+- Decision log: `DECISIONS.md`
+- AI change checklist: `AI_CHANGE_CHECKLIST.md`
+- Enhancement backlog: `ENHANCEMENT_QUEUE.md`

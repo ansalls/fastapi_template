@@ -1,6 +1,7 @@
 import pytest
-
 from app import database
+
+pytestmark = pytest.mark.unit
 
 
 class DummySession:

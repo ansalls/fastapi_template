@@ -4,8 +4,9 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse
 from fastapi.staticfiles import StaticFiles
-from .routers import post, user, auth, vote
+
 from .config import settings
+from .routers import auth, post, user, vote
 
 app = FastAPI()
 
@@ -21,7 +22,7 @@ app.add_middleware(
     allow_credentials=False,
     allow_methods=["*"],
     allow_headers=["*"],
-    )
+)
 
 app.include_router(post.router)
 app.include_router(user.router)

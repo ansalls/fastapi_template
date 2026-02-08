@@ -1,4 +1,7 @@
+import pytest
 from app import schemas
+
+pytestmark = pytest.mark.integration
 
 
 def test_get_user_by_id_returns_user(client, test_user):

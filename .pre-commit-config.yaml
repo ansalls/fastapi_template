@@ -1,0 +1,33 @@
+repos:
+  - repo: https://github.com/pre-commit/pre-commit-hooks
+    rev: v5.0.0
+    hooks:
+      - id: trailing-whitespace
+        files: ^(app/|tests/|\.github/|README\.md|ARCHITECTURE\.md|DECISIONS\.md|AI_CHANGE_CHECKLIST\.md|ENHANCEMENT_QUEUE\.md|requirements.*\.txt|\.pre-commit-config\.yaml|pytest\.ini|mypy\.ini|\.ruff\.toml)$
+      - id: end-of-file-fixer
+        files: ^(app/|tests/|\.github/|README\.md|ARCHITECTURE\.md|DECISIONS\.md|AI_CHANGE_CHECKLIST\.md|ENHANCEMENT_QUEUE\.md|requirements.*\.txt|\.pre-commit-config\.yaml|pytest\.ini|mypy\.ini|\.ruff\.toml)$
+      - id: check-yaml
+      - id: check-merge-conflict
+
+  - repo: https://github.com/astral-sh/ruff-pre-commit
+    rev: v0.15.0
+    hooks:
+      - id: ruff
+        files: ^(app/|tests/)
+      - id: ruff-format
+        files: ^(app/|tests/)
+
+  - repo: https://github.com/pre-commit/mirrors-mypy
+    rev: v1.19.1
+    hooks:
+      - id: mypy
+        args: ["app"]
+        pass_filenames: false
+
+  - repo: local
+    hooks:
+      - id: pytest-quick
+        name: pytest (quick)
+        entry: .venv/bin/pytest -q tests/test_calculations.py tests/unit/test_database_unit.py tests/unit/test_main_unit.py
+        language: system
+        pass_filenames: false

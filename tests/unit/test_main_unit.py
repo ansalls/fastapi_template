@@ -1,10 +1,12 @@
-from pathlib import Path
 import runpy
 import warnings
+from pathlib import Path
 
+import pytest
+from app import main
 from fastapi.testclient import TestClient
 
-from app import main
+pytestmark = pytest.mark.unit
 
 
 def test_root_serves_frontend_html():
@@ -50,7 +52,9 @@ def test_main_module_handles_missing_static_dir(monkeypatch):
         )
         module_vars = runpy.run_module("app.main", run_name="__coverage_main_no_static")
     mounted_static = [
-        route for route in module_vars["app"].routes if getattr(route, "name", "") == "static"
+        route
+        for route in module_vars["app"].routes
+        if getattr(route, "name", "") == "static"
     ]
 
     assert mounted_static == []
