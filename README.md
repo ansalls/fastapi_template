@@ -68,10 +68,10 @@ uvicorn app.main:app --reload
 ## Running Tests
 
 ```bash
-pytest -q
+pytest -q --cov=app --cov-branch --cov-report=term-missing --cov-fail-under=100
 ```
 
-Tests expect a reachable PostgreSQL instance using the configured env values and will use `<DATABASE_NAME>_test`.
+Tests include unit, integration, and end-to-end coverage. They expect a reachable PostgreSQL instance using the configured env values and will use `<DATABASE_NAME>_test` plus an isolated temporary e2e database.
 
 ## Docker
 
