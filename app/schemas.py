@@ -71,7 +71,17 @@ class OAuthProvider(BaseModel):
     provider: str
     display_name: str
     start_url: str
+    link_start_url: str
 
 
 class OAuthProvidersResponse(BaseModel):
     providers: list[OAuthProvider]
+
+
+class OAuthStartResponse(BaseModel):
+    authorization_url: str
+
+
+class OAuthLinkResponse(BaseModel):
+    provider: str
+    linked: bool

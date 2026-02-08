@@ -102,6 +102,17 @@ def test_build_and_parse_oauth_state_round_trip():
     assert parsed.redirect_to_frontend is True
 
 
+def test_build_and_parse_oauth_state_with_link_user_id():
+    state = oauth_external.build_oauth_state(
+        provider="github",
+        code_verifier="verifier",
+        redirect_to_frontend=True,
+        link_user_id=42,
+    )
+    parsed = oauth_external.parse_oauth_state(state, expected_provider="github")
+    assert parsed.link_user_id == 42
+
+
 def test_parse_oauth_state_rejects_invalid_token():
     with pytest.raises(HTTPException) as exc_info:
         oauth_external.parse_oauth_state("not-a-token", expected_provider="google")
@@ -148,6 +159,38 @@ def test_parse_oauth_state_rejects_missing_code_verifier(monkeypatch):
         oauth_external.parse_oauth_state(token, expected_provider="google")
 
 
+def test_parse_oauth_state_rejects_invalid_link_user_id_type():
+    token = oauth_external.jwt.encode(
+        {
+            "token_type": "oauth_state",
+            "provider": "google",
+            "code_verifier": "verifier",
+            "link_user_id": "not-an-int",
+            "exp": datetime.now(timezone.utc) + timedelta(minutes=5),
+        },
+        oauth_external.oauth2.SECRET_KEY,
+        algorithm=oauth_external.oauth2.ALGORITHM,
+    )
+    with pytest.raises(HTTPException):
+        oauth_external.parse_oauth_state(token, expected_provider="google")
+
+
+def test_parse_oauth_state_rejects_non_positive_link_user_id():
+    token = oauth_external.jwt.encode(
+        {
+            "token_type": "oauth_state",
+            "provider": "google",
+            "code_verifier": "verifier",
+            "link_user_id": 0,
+            "exp": datetime.now(timezone.utc) + timedelta(minutes=5),
+        },
+        oauth_external.oauth2.SECRET_KEY,
+        algorithm=oauth_external.oauth2.ALGORITHM,
+    )
+    with pytest.raises(HTTPException):
+        oauth_external.parse_oauth_state(token, expected_provider="google")
+
+
 def test_build_authorization_url_google(monkeypatch, fake_request):
     _enable_provider(monkeypatch, "google")
     url = oauth_external.build_authorization_url(
@@ -164,6 +207,22 @@ def test_build_authorization_url_google(monkeypatch, fake_request):
     state_token = query["state"][0]
     state = oauth_external.parse_oauth_state(state_token, expected_provider="google")
     assert state.redirect_to_frontend is False
+    assert state.link_user_id is None
+
+
+def test_build_authorization_url_with_link_user_id(monkeypatch, fake_request):
+    _enable_provider(monkeypatch, "github")
+    url = oauth_external.build_authorization_url(
+        "github",
+        fake_request,
+        redirect_to_frontend=True,
+        link_user_id=123,
+    )
+    query = parse_qs(urlparse(url).query)
+    state = oauth_external.parse_oauth_state(
+        query["state"][0], expected_provider="github"
+    )
+    assert state.link_user_id == 123
 
 
 def test_build_authorization_url_uses_public_base(monkeypatch, fake_request):
@@ -751,22 +810,179 @@ def test_find_or_create_user_for_identity_requires_email_for_new_account(session
 
 
 @pytest.mark.integration
-def test_authenticate_oauth_callback_returns_token_and_redirect_flag(
-    session, monkeypatch, fake_request
-):
+def test_link_identity_to_existing_user_user_not_found(session):
+    identity = oauth_external.ExternalIdentity(
+        provider="github",
+        subject="sub-1",
+        email="link@example.com",
+        email_verified=True,
+    )
+    with pytest.raises(HTTPException) as exc_info:
+        oauth_external._link_identity_to_existing_user(
+            session, user_id=999_999, identity=identity
+        )
+    assert exc_info.value.status_code == 404
+
+
+@pytest.mark.integration
+def test_link_identity_to_existing_user_conflict_other_user(session):
+    user_a = models.User(email="a@example.com", password="hashed")
+    user_b = models.User(email="b@example.com", password="hashed")
+    session.add_all([user_a, user_b])
+    session.flush()
+    session.add(
+        models.OAuthAccount(
+            user_id=int(user_a.id),
+            provider="github",
+            provider_subject="subject-1",
+            provider_email="a@example.com",
+        )
+    )
+    session.commit()
+
+    identity = oauth_external.ExternalIdentity(
+        provider="github",
+        subject="subject-1",
+        email="b@example.com",
+        email_verified=True,
+    )
+    with pytest.raises(HTTPException) as exc_info:
+        oauth_external._link_identity_to_existing_user(
+            session, user_id=int(user_b.id), identity=identity
+        )
+    assert exc_info.value.status_code == 409
+
+
+@pytest.mark.integration
+def test_link_identity_to_existing_user_provider_already_linked_different_subject(session):
+    user = models.User(email="existing-link@example.com", password="hashed")
+    session.add(user)
+    session.flush()
+    session.add(
+        models.OAuthAccount(
+            user_id=int(user.id),
+            provider="github",
+            provider_subject="subject-a",
+            provider_email="existing-link@example.com",
+        )
+    )
+    session.commit()
+
+    identity = oauth_external.ExternalIdentity(
+        provider="github",
+        subject="subject-b",
+        email="existing-link@example.com",
+        email_verified=True,
+    )
+    with pytest.raises(HTTPException) as exc_info:
+        oauth_external._link_identity_to_existing_user(
+            session, user_id=int(user.id), identity=identity
+        )
+    assert exc_info.value.status_code == 409
+
+
+@pytest.mark.integration
+def test_link_identity_to_existing_user_idempotent_update(session):
+    user = models.User(email="idempotent@example.com", password="hashed")
+    session.add(user)
+    session.flush()
+    session.add(
+        models.OAuthAccount(
+            user_id=int(user.id),
+            provider="google",
+            provider_subject="subject-1",
+            provider_email="old@example.com",
+        )
+    )
+    session.commit()
+
+    identity = oauth_external.ExternalIdentity(
+        provider="google",
+        subject="subject-1",
+        email="new@example.com",
+        email_verified=True,
+    )
+    oauth_external._link_identity_to_existing_user(
+        session, user_id=int(user.id), identity=identity
+    )
+    session.commit()
+
+    account = (
+        session.query(models.OAuthAccount)
+        .filter(models.OAuthAccount.user_id == user.id, models.OAuthAccount.provider == "google")
+        .first()
+    )
+    assert account is not None
+    assert account.provider_email == "new@example.com"
+
+
+@pytest.mark.integration
+def test_link_identity_to_existing_user_idempotent_without_new_email(session):
+    user = models.User(email="idempotent-no-email@example.com", password="hashed")
+    session.add(user)
+    session.flush()
+    session.add(
+        models.OAuthAccount(
+            user_id=int(user.id),
+            provider="google",
+            provider_subject="subject-1",
+            provider_email="existing@example.com",
+        )
+    )
+    session.commit()
+
+    identity = oauth_external.ExternalIdentity(
+        provider="google",
+        subject="subject-1",
+        email=None,
+        email_verified=False,
+    )
+    oauth_external._link_identity_to_existing_user(
+        session, user_id=int(user.id), identity=identity
+    )
+    session.commit()
+
+    account = (
+        session.query(models.OAuthAccount)
+        .filter(models.OAuthAccount.user_id == user.id, models.OAuthAccount.provider == "google")
+        .first()
+    )
+    assert account is not None
+    assert account.provider_email == "existing@example.com"
+
+
+@pytest.mark.integration
+def test_link_identity_to_existing_user_creates_new_account(session):
+    user = models.User(email="new-link@example.com", password="hashed")
+    session.add(user)
+    session.commit()
+
+    identity = oauth_external.ExternalIdentity(
+        provider="facebook",
+        subject="fb-subject",
+        email="new-link@example.com",
+        email_verified=True,
+    )
+    oauth_external._link_identity_to_existing_user(
+        session, user_id=int(user.id), identity=identity
+    )
+    session.commit()
+
+    account = (
+        session.query(models.OAuthAccount)
+        .filter(models.OAuthAccount.user_id == user.id, models.OAuthAccount.provider == "facebook")
+        .first()
+    )
+    assert account is not None
+    assert account.provider_subject == "fb-subject"
+
+
+@pytest.mark.integration
+def test_complete_oauth_callback_returns_token_result(session, monkeypatch, fake_request):
     user = models.User(email="callback@example.com", password="hashed")
     session.add(user)
     session.commit()
 
-    monkeypatch.setattr(
-        oauth_external,
-        "parse_oauth_state",
-        lambda *_args, **_kwargs: oauth_external.OAuthState(
-            provider="google",
-            code_verifier="verifier",
-            redirect_to_frontend=True,
-        ),
-    )
     monkeypatch.setattr(
         oauth_external,
         "_exchange_code_for_token",
@@ -783,16 +999,59 @@ def test_authenticate_oauth_callback_returns_token_and_redirect_flag(
         ),
     )
 
-    token, redirect = oauth_external.authenticate_oauth_callback(
+    result = oauth_external.complete_oauth_callback(
         session,
         fake_request,
         provider="google",
         code="code-123",
-        state_token="state-123",
+        state=oauth_external.OAuthState(
+            provider="google",
+            code_verifier="verifier",
+            redirect_to_frontend=True,
+        ),
     )
-    assert token.access_token
-    assert token.refresh_token
-    assert redirect is True
+    assert result.redirect_to_frontend is True
+    assert result.linked is False
+    assert result.token is not None
+    assert result.token.access_token
+
+
+@pytest.mark.integration
+def test_complete_oauth_callback_link_mode(session, monkeypatch, fake_request):
+    user = models.User(email="link-callback@example.com", password="hashed")
+    session.add(user)
+    session.commit()
+
+    monkeypatch.setattr(
+        oauth_external,
+        "_exchange_code_for_token",
+        lambda *_args, **_kwargs: {"access_token": "oauth-provider-token"},
+    )
+    monkeypatch.setattr(
+        oauth_external,
+        "fetch_external_identity",
+        lambda *_args, **_kwargs: oauth_external.ExternalIdentity(
+            provider="github",
+            subject="subject-link",
+            email="link-callback@example.com",
+            email_verified=True,
+        ),
+    )
+
+    result = oauth_external.complete_oauth_callback(
+        session,
+        fake_request,
+        provider="github",
+        code="code-123",
+        state=oauth_external.OAuthState(
+            provider="github",
+            code_verifier="verifier",
+            redirect_to_frontend=False,
+            link_user_id=int(user.id),
+        ),
+    )
+    assert result.linked is True
+    assert result.token is None
 
 
 def test_build_frontend_redirect_helpers():
@@ -814,3 +1073,8 @@ def test_build_frontend_success_redirect_without_refresh_token():
     token = oauth_external.schemas.Token(access_token="access", token_type="bearer")
     success = oauth_external.build_frontend_success_redirect("google", token)
     assert "refresh_token" not in success
+
+
+def test_build_frontend_link_redirect():
+    redirect = oauth_external.build_frontend_link_redirect("github")
+    assert redirect == "/#provider=github&linked=true"

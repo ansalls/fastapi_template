@@ -10,6 +10,7 @@ def test_openapi_exposes_expected_core_paths(client):
     assert "/api/v1/login" in paths
     assert "/api/v1/auth/oauth/providers" in paths
     assert "/api/v1/auth/oauth/{provider}/start" in paths
+    assert "/api/v1/auth/oauth/{provider}/link/start" in paths
     assert "/api/v1/auth/oauth/{provider}/callback" in paths
     assert "/api/v1/users/" in paths
     assert "/api/v1/posts/" in paths

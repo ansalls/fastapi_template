@@ -6,6 +6,7 @@ const tokenOutput = document.getElementById("token-output");
 const postList = document.getElementById("post-list");
 const logBox = document.getElementById("log");
 const oauthProviders = document.getElementById("oauth-providers");
+const oauthLinkProviders = document.getElementById("oauth-link-providers");
 
 const tokenStoreKey = "fastapi_template_token";
 
@@ -65,8 +66,10 @@ function renderPosts(posts) {
 
 function renderOAuthProviders(providers) {
   oauthProviders.innerHTML = "";
+  oauthLinkProviders.innerHTML = "";
   if (!providers.length) {
     oauthProviders.textContent = "No OAuth providers configured.";
+    oauthLinkProviders.textContent = "No OAuth providers configured.";
     return;
   }
 
@@ -76,6 +79,35 @@ function renderOAuthProviders(providers) {
     link.className = "oauth-link";
     link.textContent = `Continue with ${provider.display_name}`;
     oauthProviders.appendChild(link);
+
+    const linkButton = document.createElement("button");
+    linkButton.type = "button";
+    linkButton.className = "oauth-link oauth-link-button";
+    linkButton.textContent = `Link ${provider.display_name}`;
+    linkButton.addEventListener("click", () => startOAuthLink(provider));
+    oauthLinkProviders.appendChild(linkButton);
+  }
+
+  if (!getToken()) {
+    oauthLinkProviders.textContent = "Login first to link providers to your account.";
+  }
+}
+
+async function startOAuthLink(provider) {
+  if (!getToken()) {
+    log("Login first before linking an OAuth provider.");
+    return;
+  }
+
+  try {
+    const response = await apiFetch(provider.link_start_url, { method: "POST" });
+    const payload = await response.json();
+    if (!payload.authorization_url) {
+      throw new Error("Missing authorization URL");
+    }
+    window.location.href = payload.authorization_url;
+  } catch (error) {
+    log(`OAuth link failed (${provider.provider}): ${error.message}`);
   }
 }
 
@@ -102,6 +134,7 @@ async function handleOAuthCallbackHash() {
   const oauthError = params.get("error");
   const provider = params.get("provider") || "provider";
   const accessToken = params.get("access_token");
+  const linked = params.get("linked");
 
   if (oauthError) {
     log(`OAuth login failed (${provider}): ${oauthError}`);
@@ -110,12 +143,17 @@ async function handleOAuthCallbackHash() {
   }
 
   if (!accessToken) {
+    if (linked === "true") {
+      log(`Linked ${provider} to your account.`);
+      clearAuthHash();
+    }
     return;
   }
 
   setToken(accessToken);
   log(`Logged in with ${provider}.`);
   clearAuthHash();
+  await loadOAuthProviders();
   await loadPosts();
 }
 
@@ -169,6 +207,7 @@ loginForm.addEventListener("submit", async (event) => {
     const payload = await response.json();
     setToken(payload.access_token);
     log(`Logged in as ${email}`);
+    await loadOAuthProviders();
     await loadPosts();
   } catch (error) {
     log(`Login failed: ${error.message}`);

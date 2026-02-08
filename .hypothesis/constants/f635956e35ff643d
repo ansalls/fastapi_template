@@ -1,0 +1,4 @@
+# file: /Users/tony/Desktop/Code/Projects/fastapi_template/app/observability.py
+# hypothesis_version: 6.141.1
+
+['/metrics', 'logging', 'metrics', 'otel_configured', 'path', 'sentry', 'service.name', 'tracing']

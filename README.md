@@ -80,6 +80,7 @@ uvicorn app.main:app --reload
 - OAuth endpoints:
   - `GET /api/v1/auth/oauth/providers`
   - `GET /api/v1/auth/oauth/{provider}/start`
+  - `POST /api/v1/auth/oauth/{provider}/link/start` (authenticated account linking)
   - `GET|POST /api/v1/auth/oauth/{provider}/callback`
 
 ## Runtime Endpoints

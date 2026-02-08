@@ -1,0 +1,4 @@
+# file: /Users/tony/Desktop/Code/Projects/fastapi_template/app/routers/post.py
+# hypothesis_version: 6.141.1
+
+[100, '/', '/posts', '/{id}', 'Posts', 'api_read', 'api_write', 'owner_id', 'post.created', 'post.deleted', 'post.updated', 'post_id', 'votes']

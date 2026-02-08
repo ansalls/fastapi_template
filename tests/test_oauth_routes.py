@@ -31,6 +31,7 @@ def test_oauth_providers_lists_configured_provider(client, monkeypatch):
             "provider": "github",
             "display_name": "GitHub",
             "start_url": "/api/v1/auth/oauth/github/start",
+            "link_start_url": "/api/v1/auth/oauth/github/link/start",
         }
     ]
 
@@ -44,6 +45,30 @@ def test_oauth_start_redirects_to_provider(client, monkeypatch):
     response = client.get("/api/v1/auth/oauth/github/start", follow_redirects=False)
     assert response.status_code == 307
     assert response.headers["location"] == "https://oauth.example/authorize"
+
+
+def test_oauth_link_start_requires_authentication(client):
+    response = client.post("/api/v1/auth/oauth/github/link/start")
+    assert response.status_code == 401
+
+
+def test_oauth_link_start_returns_authorization_url(
+    authorized_client, test_user, monkeypatch
+):
+    captured = {}
+
+    def fake_build_authorization_url(*_args, **kwargs):
+        captured.update(kwargs)
+        return "https://oauth.example/link-authorize"
+
+    monkeypatch.setattr(oauth_external, "build_authorization_url", fake_build_authorization_url)
+
+    response = authorized_client.post("/api/v1/auth/oauth/github/link/start")
+
+    assert response.status_code == 200
+    assert response.json() == {"authorization_url": "https://oauth.example/link-authorize"}
+    assert captured["link_user_id"] == test_user["id"]
+    assert captured["redirect_to_frontend"] is True
 
 
 def test_oauth_error_message_default_text():
@@ -140,8 +165,12 @@ def test_oauth_callback_success_redirect_mode(client, monkeypatch):
     )
     monkeypatch.setattr(
         oauth_external,
-        "authenticate_oauth_callback",
-        lambda *_args, **_kwargs: (token, True),
+        "complete_oauth_callback",
+        lambda *_args, **_kwargs: oauth_external.OAuthCallbackResult(
+            provider="github",
+            redirect_to_frontend=True,
+            token=token,
+        ),
     )
     monkeypatch.setattr(
         oauth_external,
@@ -176,8 +205,12 @@ def test_oauth_callback_success_json_mode(client, monkeypatch):
     )
     monkeypatch.setattr(
         oauth_external,
-        "authenticate_oauth_callback",
-        lambda *_args, **_kwargs: (token, False),
+        "complete_oauth_callback",
+        lambda *_args, **_kwargs: oauth_external.OAuthCallbackResult(
+            provider="github",
+            redirect_to_frontend=False,
+            token=token,
+        ),
     )
 
     response = client.get(
@@ -187,6 +220,125 @@ def test_oauth_callback_success_json_mode(client, monkeypatch):
 
     assert response.status_code == 200
     assert response.json()["access_token"] == "access"
+
+
+def test_oauth_callback_link_redirect_mode(client, monkeypatch):
+    monkeypatch.setattr(
+        oauth_external,
+        "parse_oauth_state",
+        lambda *_args, **_kwargs: oauth_external.OAuthState(
+            provider="github",
+            code_verifier="verifier",
+            redirect_to_frontend=True,
+            link_user_id=1,
+        ),
+    )
+    monkeypatch.setattr(
+        oauth_external,
+        "complete_oauth_callback",
+        lambda *_args, **_kwargs: oauth_external.OAuthCallbackResult(
+            provider="github",
+            redirect_to_frontend=True,
+            linked=True,
+        ),
+    )
+
+    response = client.get(
+        "/api/v1/auth/oauth/github/callback",
+        params={"state": "state-token", "code": "provider-code"},
+        follow_redirects=False,
+    )
+
+    assert response.status_code == 302
+    assert response.headers["location"] == "/#provider=github&linked=true"
+
+
+def test_oauth_callback_link_json_mode(client, monkeypatch):
+    monkeypatch.setattr(
+        oauth_external,
+        "parse_oauth_state",
+        lambda *_args, **_kwargs: oauth_external.OAuthState(
+            provider="github",
+            code_verifier="verifier",
+            redirect_to_frontend=False,
+            link_user_id=1,
+        ),
+    )
+    monkeypatch.setattr(
+        oauth_external,
+        "complete_oauth_callback",
+        lambda *_args, **_kwargs: oauth_external.OAuthCallbackResult(
+            provider="github",
+            redirect_to_frontend=False,
+            linked=True,
+        ),
+    )
+
+    response = client.get(
+        "/api/v1/auth/oauth/github/callback",
+        params={"state": "state-token", "code": "provider-code"},
+    )
+
+    assert response.status_code == 200
+    assert response.json() == {"provider": "github", "linked": True}
+
+
+def test_oauth_callback_redirect_mode_missing_token_returns_500(client, monkeypatch):
+    monkeypatch.setattr(
+        oauth_external,
+        "parse_oauth_state",
+        lambda *_args, **_kwargs: oauth_external.OAuthState(
+            provider="github",
+            code_verifier="verifier",
+            redirect_to_frontend=True,
+        ),
+    )
+    monkeypatch.setattr(
+        oauth_external,
+        "complete_oauth_callback",
+        lambda *_args, **_kwargs: oauth_external.OAuthCallbackResult(
+            provider="github",
+            redirect_to_frontend=True,
+            token=None,
+            linked=False,
+        ),
+    )
+
+    response = client.get(
+        "/api/v1/auth/oauth/github/callback",
+        params={"state": "state-token", "code": "provider-code"},
+    )
+    assert response.status_code == 500
+    assert response.json()["error_code"] == "oauth_callback_invalid_response"
+
+
+def test_oauth_callback_json_mode_missing_token_returns_500(client, monkeypatch):
+    monkeypatch.setattr(
+        oauth_external,
+        "parse_oauth_state",
+        lambda *_args, **_kwargs: oauth_external.OAuthState(
+            provider="github",
+            code_verifier="verifier",
+            redirect_to_frontend=False,
+        ),
+    )
+    monkeypatch.setattr(
+        oauth_external,
+        "complete_oauth_callback",
+        lambda *_args, **_kwargs: oauth_external.OAuthCallbackResult(
+            provider="github",
+            redirect_to_frontend=False,
+            token=None,
+            linked=False,
+        ),
+    )
+
+    response = client.get(
+        "/api/v1/auth/oauth/github/callback",
+        params={"state": "state-token", "code": "provider-code"},
+    )
+    assert response.status_code == 500
+    assert response.json()["error_code"] == "oauth_callback_invalid_response"
 
 
 def test_oauth_callback_post_path(client, monkeypatch):
@@ -206,8 +358,12 @@ def test_oauth_callback_post_path(client, monkeypatch):
     )
     monkeypatch.setattr(
         oauth_external,
-        "authenticate_oauth_callback",
-        lambda *_args, **_kwargs: (token, False),
+        "complete_oauth_callback",
+        lambda *_args, **_kwargs: oauth_external.OAuthCallbackResult(
+            provider="github",
+            redirect_to_frontend=False,
+            token=token,
+        ),
     )
 
     response = client.post(

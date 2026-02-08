@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import Any, Optional
+from typing import Any, Optional, Union
 
 from fastapi import APIRouter, Depends, Form, HTTPException, Request, Response, status
 from fastapi.responses import RedirectResponse
@@ -64,6 +64,7 @@ def oauth_providers():
             provider=provider.provider,
             display_name=provider.display_name,
             start_url=f"/api/v1/auth/oauth/{provider.provider}/start",
+            link_start_url=f"/api/v1/auth/oauth/{provider.provider}/link/start",
         )
         for provider in oauth_external.list_enabled_providers()
     ]
@@ -119,16 +120,41 @@ async def _handle_oauth_callback(
             },
         )
 
-    token, redirect_to_frontend = oauth_external.authenticate_oauth_callback(
+    callback_result = oauth_external.complete_oauth_callback(
         db,
         request,
         provider=provider,
         code=code,
-        state_token=state,
+        state=parsed_state,
     )
-    if redirect_to_frontend:
+    if callback_result.redirect_to_frontend:
+        if callback_result.linked:
+            redirect_url = oauth_external.build_frontend_link_redirect(provider)
+            return RedirectResponse(redirect_url, status_code=status.HTTP_302_FOUND)
+        token = callback_result.token
+        if token is None:
+            raise HTTPException(
+                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                detail={
+                    "detail": "OAuth callback did not return tokens",
+                    "error_code": "oauth_callback_invalid_response",
+                },
+            )
         redirect_url = oauth_external.build_frontend_success_redirect(provider, token)
         return RedirectResponse(redirect_url, status_code=status.HTTP_302_FOUND)
+
+    if callback_result.linked:
+        return schemas.OAuthLinkResponse(provider=provider, linked=True)
+
+    token = callback_result.token
+    if token is None:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail={
+                "detail": "OAuth callback did not return tokens",
+                "error_code": "oauth_callback_invalid_response",
+            },
+        )
     return token
 
 
@@ -147,7 +173,30 @@ def oauth_start(
     return RedirectResponse(authorize_url, status_code=status.HTTP_307_TEMPORARY_REDIRECT)
 
 
-@router.get("/auth/oauth/{provider}/callback", response_model=schemas.Token)
+@router.post(
+    "/auth/oauth/{provider}/link/start",
+    response_model=schemas.OAuthStartResponse,
+)
+def oauth_link_start(
+    provider: str,
+    request: Request,
+    redirect_to_frontend: bool = True,
+    _: None = rate_limit_dependency("auth_login"),
+    current_user: models.User = Depends(oauth2.get_current_user),
+):
+    authorization_url = oauth_external.build_authorization_url(
+        provider,
+        request,
+        redirect_to_frontend=redirect_to_frontend,
+        link_user_id=int(current_user.id),
+    )
+    return schemas.OAuthStartResponse(authorization_url=authorization_url)
+
+
+@router.get(
+    "/auth/oauth/{provider}/callback",
+    response_model=Union[schemas.Token, schemas.OAuthLinkResponse],
+)
 async def oauth_callback_get(
     provider: str,
     request: Request,
@@ -169,7 +218,10 @@ async def oauth_callback_get(
     )
 
 
-@router.post("/auth/oauth/{provider}/callback", response_model=schemas.Token)
+@router.post(
+    "/auth/oauth/{provider}/callback",
+    response_model=Union[schemas.Token, schemas.OAuthLinkResponse],
+)
 async def oauth_callback_post(
     provider: str,
     request: Request,

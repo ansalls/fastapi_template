@@ -1,0 +1,4 @@
+# file: /Users/tony/Desktop/Code/Projects/fastapi_template/app/errors.py
+# hypothesis_version: 6.141.1
+
+[422, 500, 'Error', 'Request failed', 'about:blank', 'detail', 'error_code', 'errors', 'headers', 'instance', 'request_failed', 'status', 'title', 'type', 'validation_error']

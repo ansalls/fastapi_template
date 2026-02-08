@@ -50,6 +50,7 @@ Worker scaffold:
 6. OAuth login is supported via:
    - `GET /api/v1/auth/oauth/providers`
    - `GET /api/v1/auth/oauth/{provider}/start`
+   - `POST /api/v1/auth/oauth/{provider}/link/start` (link provider to existing account)
    - `GET|POST /api/v1/auth/oauth/{provider}/callback`
 
 ## Error Contract

@@ -1,0 +1,4 @@
+# file: /Users/tony/Desktop/Code/Projects/fastapi_template/app/routers/auth.py
+# hypothesis_version: 6.141.1
+
+['/auth/logout', '/auth/refresh', '/login', 'Authentication', 'Invalid Credentials', 'auth_login', 'detail', 'error_code', 'invalid_oauth_state', 'oauth_code_missing', 'oauth_provider_error']

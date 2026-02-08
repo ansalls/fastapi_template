@@ -1,0 +1,4 @@
+# file: /Users/tony/Desktop/Code/Projects/fastapi_template/app/main.py
+# hypothesis_version: 6.141.1
+
+[503, '*', '/', '/api', '/health', '/ready', '/static', 'X-API-Version', 'api', 'checks', 'detail', 'error_code', 'frontend', 'http', 'index.html', 'message', 'ok', 'service_not_ready', 'static', 'status', 'true', 'x-api-version']

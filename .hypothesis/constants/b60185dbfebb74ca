@@ -1,0 +1,4 @@
+# file: /Users/tony/Desktop/Code/Projects/fastapi_template/app/models.py
+# hypothesis_version: 6.141.1
+
+['0', 'CASCADE', 'FALSE', 'OAuthAccount', 'Post', 'RefreshToken', 'TRUE', 'User', 'all, delete-orphan', 'now()', 'oauth_accounts', 'outbox_events', 'owner', 'pending', 'posts', 'posts.id', 'provider', 'provider_subject', 'refresh_tokens', 'user', 'users', 'users.id', 'votes']

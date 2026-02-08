@@ -38,6 +38,7 @@ class OAuthState:
     provider: str
     code_verifier: str
     redirect_to_frontend: bool
+    link_user_id: int | None = None
 
 
 @dataclass(frozen=True)
@@ -46,6 +47,14 @@ class ExternalIdentity:
     subject: str
     email: str | None
     email_verified: bool
+
+
+@dataclass(frozen=True)
+class OAuthCallbackResult:
+    provider: str
+    redirect_to_frontend: bool
+    token: schemas.Token | None = None
+    linked: bool = False
 
 
 _PROVIDERS: dict[str, OAuthProviderConfig] = {
@@ -184,6 +193,7 @@ def build_oauth_state(
     provider: str,
     code_verifier: str,
     redirect_to_frontend: bool,
+    link_user_id: int | None = None,
 ) -> str:
     payload = {
         "token_type": _OAUTH_STATE_TOKEN_TYPE,
@@ -193,6 +203,8 @@ def build_oauth_state(
         "jti": uuid.uuid4().hex,
         "exp": _now_utc() + timedelta(seconds=settings.oauth_state_expire_seconds),
     }
+    if link_user_id is not None:
+        payload["link_user_id"] = int(link_user_id)
     return jwt.encode(payload, oauth2.SECRET_KEY, algorithm=oauth2.ALGORITHM)
 
 
@@ -218,15 +230,29 @@ def parse_oauth_state(state_token: str, *, expected_provider: str) -> OAuthState
         raise _oauth_error("Invalid OAuth state", error_code="invalid_oauth_state")
 
     redirect_to_frontend = bool(payload.get("redirect_to_frontend", True))
+    raw_link_user_id = payload.get("link_user_id")
+    link_user_id: int | None = None
+    if raw_link_user_id is not None:
+        try:
+            link_user_id = int(raw_link_user_id)
+        except (TypeError, ValueError):
+            raise _oauth_error("Invalid OAuth state", error_code="invalid_oauth_state")
+        if link_user_id <= 0:
+            raise _oauth_error("Invalid OAuth state", error_code="invalid_oauth_state")
     return OAuthState(
         provider=provider,
         code_verifier=code_verifier,
         redirect_to_frontend=redirect_to_frontend,
+        link_user_id=link_user_id,
     )
 
 
 def build_authorization_url(
-    provider: str, request: Request, *, redirect_to_frontend: bool
+    provider: str,
+    request: Request,
+    *,
+    redirect_to_frontend: bool,
+    link_user_id: int | None = None,
 ) -> str:
     config = get_provider(provider)
     client_id, _ = _provider_credentials(provider)
@@ -237,6 +263,7 @@ def build_authorization_url(
         provider=provider,
         code_verifier=code_verifier,
         redirect_to_frontend=redirect_to_frontend,
+        link_user_id=link_user_id,
     )
 
     params: dict[str, str] = {
@@ -563,15 +590,77 @@ def _find_or_create_user_for_identity(db: Session, identity: ExternalIdentity) -
     return user
 
 
-def authenticate_oauth_callback(
+def _link_identity_to_existing_user(
+    db: Session,
+    *,
+    user_id: int,
+    identity: ExternalIdentity,
+) -> None:
+    user = db.query(models.User).filter(models.User.id == user_id).first()
+    if user is None:
+        raise _oauth_error(
+            "User does not exist",
+            error_code="oauth_link_user_not_found",
+            status_code=status.HTTP_404_NOT_FOUND,
+        )
+
+    existing_subject_account = (
+        db.query(models.OAuthAccount)
+        .filter(
+            models.OAuthAccount.provider == identity.provider,
+            models.OAuthAccount.provider_subject == identity.subject,
+        )
+        .first()
+    )
+    if existing_subject_account is not None and int(existing_subject_account.user_id) != int(
+        user.id
+    ):
+        raise _oauth_error(
+            "OAuth identity is already linked to another account",
+            error_code="oauth_identity_already_linked",
+            status_code=status.HTTP_409_CONFLICT,
+        )
+
+    existing_provider_for_user = (
+        db.query(models.OAuthAccount)
+        .filter(
+            models.OAuthAccount.user_id == user.id,
+            models.OAuthAccount.provider == identity.provider,
+        )
+        .first()
+    )
+    now = _now_utc()
+    if existing_provider_for_user is not None:
+        if existing_provider_for_user.provider_subject != identity.subject:
+            raise _oauth_error(
+                "Provider is already linked to this account with a different identity",
+                error_code="oauth_provider_already_linked",
+                status_code=status.HTTP_409_CONFLICT,
+            )
+        existing_provider_for_user.last_login_at = now  # type: ignore[assignment]
+        if identity.email:
+            existing_provider_for_user.provider_email = identity.email  # type: ignore[assignment]
+        return
+
+    db.add(
+        models.OAuthAccount(
+            user_id=int(user.id),
+            provider=identity.provider,
+            provider_subject=identity.subject,
+            provider_email=identity.email,
+            last_login_at=now,
+        )
+    )
+
+
+def complete_oauth_callback(
     db: Session,
     request: Request,
     *,
     provider: str,
     code: str,
-    state_token: str,
-) -> tuple[schemas.Token, bool]:
-    state = parse_oauth_state(state_token, expected_provider=provider)
+    state: OAuthState,
+) -> OAuthCallbackResult:
     token_payload = _exchange_code_for_token(
         provider,
         request,
@@ -579,10 +668,28 @@ def authenticate_oauth_callback(
         code_verifier=state.code_verifier,
     )
     identity = fetch_external_identity(provider, token_payload)
+
+    if state.link_user_id is not None:
+        _link_identity_to_existing_user(
+            db,
+            user_id=state.link_user_id,
+            identity=identity,
+        )
+        db.commit()
+        return OAuthCallbackResult(
+            provider=provider,
+            redirect_to_frontend=state.redirect_to_frontend,
+            linked=True,
+        )
+
     user = _find_or_create_user_for_identity(db, identity)
     db.flush()
     token_pair = oauth2.issue_token_pair(db, int(user.id))
-    return token_pair, state.redirect_to_frontend
+    return OAuthCallbackResult(
+        provider=provider,
+        redirect_to_frontend=state.redirect_to_frontend,
+        token=token_pair,
+    )
 
 
 def build_frontend_success_redirect(provider: str, token: schemas.Token) -> str:
@@ -594,6 +701,12 @@ def build_frontend_success_redirect(provider: str, token: schemas.Token) -> str:
     }
     if token.refresh_token:
         params["refresh_token"] = token.refresh_token
+    return f"{target}#{urlencode(params)}"
+
+
+def build_frontend_link_redirect(provider: str) -> str:
+    target = settings.oauth_frontend_callback_url or "/"
+    params = {"provider": provider, "linked": "true"}
     return f"{target}#{urlencode(params)}"
 
 

@@ -1,0 +1,4 @@
+# file: /Users/tony/Desktop/Code/Projects/fastapi_template/app/routers/vote.py
+# hypothesis_version: 6.141.1
+
+['/', '/vote', 'Vote', 'Vote does not exist', 'api_write', 'message', 'post_id', 'user_id', 'vote.created', 'vote.deleted']
