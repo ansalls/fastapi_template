@@ -11,7 +11,10 @@ from app.oauth2 import create_access_token
 from app import models
 
 
-SQLALCHEMY_DATABASE_URL = f'postgresql://{settings.database_username}:{settings.database_password}@{settings.database_hostname}:{settings.database_port}/{settings.database_name}_test'
+SQLALCHEMY_DATABASE_URL = (
+    f"postgresql+psycopg2://{settings.database_username}:{settings.database_password}"
+    f"@{settings.database_hostname}:{settings.database_port}/{settings.database_name}_test"
+)
 
 engine = create_engine(SQLALCHEMY_DATABASE_URL)
 
@@ -21,7 +24,6 @@ TestingSessionLocal = sessionmaker(
 
 @pytest.fixture()
 def session():
-    print("my session fixture ran")
     Base.metadata.drop_all(bind=engine)
     Base.metadata.create_all(bind=engine)
     db = TestingSessionLocal()

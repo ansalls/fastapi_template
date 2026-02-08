@@ -66,7 +66,7 @@ def create_posts(
     # new_post = cursor.fetchone()
     # conn.commit()
 
-    new_post = models.Post(owner_id=current_user.id, **post.dict())
+    new_post = models.Post(owner_id=current_user.id, **post.model_dump())
     db.add(new_post)
     db.commit()
     db.refresh(new_post)
@@ -114,7 +114,7 @@ def delete_post(
     post_query = db.query(models.Post).filter(models.Post.id == id)
     post = post_query.first()
 
-    if post == None:
+    if post is None:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
             detail=f"post with id: {id} does not exist"
@@ -146,7 +146,7 @@ def update_post(
     post_query = db.query(models.Post).filter(models.Post.id == id)
     post = post_query.first()
 
-    if post == None:
+    if post is None:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
             detail=f"post with id: {id} does not exist"
@@ -158,6 +158,6 @@ def update_post(
             detail="Not authorized to perform requested action"
             )
 
-    post_query.update(updated_post.dict(), synchronize_session=False)
+    post_query.update(updated_post.model_dump(), synchronize_session=False)
     db.commit()
     return post_query.first()

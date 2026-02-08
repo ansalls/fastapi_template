@@ -1,0 +1,192 @@
+:root {
+  color-scheme: light;
+  --bg: #f2eee8;
+  --paper: #fffaf4;
+  --ink: #1e1a16;
+  --muted: #74695f;
+  --accent: #0f6d68;
+  --accent-soft: #c4ece8;
+  --line: #ddd1c2;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  font-family: "Avenir Next", "Gill Sans", "Trebuchet MS", sans-serif;
+  color: var(--ink);
+  background:
+    radial-gradient(circle at 90% -20%, #f5d7b8 8%, transparent 40%),
+    radial-gradient(circle at -10% 40%, #c7e6de 15%, transparent 45%),
+    var(--bg);
+}
+
+.page {
+  max-width: 920px;
+  margin: 0 auto;
+  padding: 2rem 1rem 4rem;
+  display: grid;
+  gap: 1rem;
+}
+
+.hero {
+  background: linear-gradient(120deg, #fdf6ea, #e8f8f3 65%);
+  border: 1px solid var(--line);
+  border-radius: 20px;
+  padding: 1.4rem;
+  box-shadow: 0 10px 25px rgba(25, 17, 10, 0.06);
+}
+
+.eyebrow {
+  margin: 0 0 0.35rem;
+  color: var(--muted);
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  font-size: 0.76rem;
+}
+
+h1,
+h2 {
+  margin: 0 0 0.75rem;
+  font-weight: 700;
+}
+
+.lead {
+  margin: 0 0 1rem;
+  max-width: 70ch;
+  color: var(--muted);
+}
+
+.links {
+  display: flex;
+  gap: 0.75rem;
+  flex-wrap: wrap;
+}
+
+.links a {
+  text-decoration: none;
+  color: var(--ink);
+  background: var(--paper);
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  padding: 0.4rem 0.8rem;
+}
+
+.card {
+  background: var(--paper);
+  border: 1px solid var(--line);
+  border-radius: 18px;
+  padding: 1rem;
+  box-shadow: 0 4px 16px rgba(25, 17, 10, 0.05);
+}
+
+.card-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+form {
+  display: grid;
+  gap: 0.75rem;
+}
+
+label {
+  display: grid;
+  gap: 0.35rem;
+  font-size: 0.92rem;
+}
+
+input,
+textarea,
+button {
+  font: inherit;
+}
+
+input,
+textarea {
+  width: 100%;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  padding: 0.6rem;
+  background: #fff;
+}
+
+button {
+  justify-self: start;
+  border: 0;
+  border-radius: 999px;
+  background: var(--accent);
+  color: #fff;
+  padding: 0.45rem 0.95rem;
+  cursor: pointer;
+  transition: transform 130ms ease, filter 130ms ease;
+}
+
+button:hover {
+  filter: brightness(1.06);
+  transform: translateY(-1px);
+}
+
+.token-label {
+  margin: 0.85rem 0 0.3rem;
+  color: var(--muted);
+  font-size: 0.9rem;
+}
+
+#token-output,
+#log {
+  width: 100%;
+  min-height: 80px;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  padding: 0.7rem;
+  background: #fff;
+  font-family: Menlo, Monaco, Consolas, "Liberation Mono", monospace;
+  font-size: 0.83rem;
+}
+
+#post-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 0.65rem;
+}
+
+#post-list li {
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  padding: 0.65rem;
+  background: #fff;
+}
+
+.post-title {
+  margin: 0 0 0.2rem;
+  font-weight: 700;
+}
+
+.post-meta {
+  margin: 0;
+  color: var(--muted);
+  font-size: 0.83rem;
+}
+
+.post-content {
+  margin: 0.4rem 0 0;
+  white-space: pre-wrap;
+}
+
+@media (max-width: 760px) {
+  .page {
+    padding-top: 1.2rem;
+  }
+
+  .hero,
+  .card {
+    border-radius: 14px;
+  }
+}

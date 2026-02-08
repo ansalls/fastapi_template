@@ -1,80 +1,93 @@
-# Backend clone  of social media app by using FastAPI
+# FastAPI Template
 
-#### This API  has 4 routes
+Production-oriented FastAPI starter with:
+- PostgreSQL persistence
+- JWT-based user authentication
+- Alembic migrations
+- FastAPI route layer (users, auth, posts, votes)
+- Basic built-in browser GUI at `/`
 
-## 1) Post route
+## Project Layout
 
-#### This route is reponsible for creating post, deleting post, updating post and Checkinh post
+```
+app/
+  config.py              # settings + env loading
+  database.py            # SQLAlchemy engine/session
+  models.py              # ORM models
+  schemas.py             # Pydantic request/response models
+  oauth2.py              # JWT create/verify + current user dependency
+  routers/               # API route modules
+  frontend/              # basic browser UI
+alembic/                 # migrations
+tests/                   # pytest suite
+```
 
-## 2) Users route
+## Prerequisites
 
-#### This route is about creating users and searching user by id
+- Python 3.12+ recommended
+- PostgreSQL 15+ recommended
 
-## 3) Auth route
+## Local Setup
 
-#### This route is about login system
+1. Create and activate a virtual environment.
+2. Install dependencies:
 
-## 4) Vote route
+```bash
+pip install -r requirements-dev.txt
+```
 
- #### This route is about likes or vote system and this route contain code for upvote or back vote there is not logic about down vote
+3. Copy environment variables:
 
-# how to run locally
-First clone this repo by using following command
-````
+```bash
+cp .env.example .env
+```
 
-git clone https://github.com/Sanjeev-Thiyagarajan/fastapi-course.git
+4. Update `.env` values for your database and secrets.
+5. Create the database:
+- App DB: `fastapi` (or your configured name)
+- Test DB: `<DATABASE_NAME>_test`
 
-````
-then 
-````
+6. Run migrations:
 
-cd fastapi-course
+```bash
+alembic upgrade head
+```
 
-````
+7. Start the app:
 
-Then install fastapp using all flag like 
+```bash
+uvicorn app.main:app --reload
+```
 
-````
+## What To Open
 
-pip install fastapi[all]
+- GUI: `http://127.0.0.1:8000/`
+- Swagger docs: `http://127.0.0.1:8000/docs`
+- ReDoc: `http://127.0.0.1:8000/redoc`
 
-````
+## Running Tests
 
-Then go this repo folder in your local computer run follwoing command
-````
+```bash
+pytest -q
+```
 
-uvicorn main:app --reload
+Tests expect a reachable PostgreSQL instance using the configured env values and will use `<DATABASE_NAME>_test`.
 
-````
+## Docker
 
-Then you can use following link to use the  API
+Dev compose:
 
-````
+```bash
+docker compose -f docker-compose-dev.yml up --build
+```
 
-http://127.0.0.1:8000/docs 
+Prod compose:
 
-````
+```bash
+docker compose -f docker-compose-prod.yml up -d
+```
 
-## After run this API you need a database in postgres 
-Create a database in postgres then create a file name .env and write the following things in you file 
+## Notes
 
-````
-DATABASE_HOSTNAME = localhost
-DATABASE_PORT = 5432
-DATABASE_PASSWORD = passward_that_you_set
-DATABASE_NAME = name_of_database
-DATABASE_USERNAME = User_name
-SECRET_KEY = 09d25e094faa2556c818166b7a99f6f0f4c3b88e8d3e7 
-ALGORITHM = HS256
-ACCESS_TOKEN_EXPIRE_MINUTES = 60(base)
-
-````
-### Note: SECRET_KEY in this exmple is just a psudo key. You need to get a key for youself and you can get the SECRET_KEY  from fastapi documantion
- 
-
-### Here is the link of the playlist on youtube you can learn all about FASTAPI
- 
-<div id="badges">
-  <a href="https://www.youtube.com/watch?v=Yw4LmMQXXFs&list=PL8VzFQ8k4U1L5QpSapVEzoSfob-4CR8zM&index=2">
-    <img src="https://freshidea.com/jonah/youtube-api/subscribers-badge.php?label=Subscribers&style=for-the-badge&color=red&labelColor=ce4630" alt="youtube Badge"/>
-  </a>
+- Password hashing currently uses `passlib` + `bcrypt` with a compatibility pin.
+- ORM table creation is migration-driven (`alembic`), not import side effects.

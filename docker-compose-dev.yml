@@ -1,36 +1,41 @@
-version: "3.1.0"
 services:
   api:
-    build: .
+    build:
+      context: .
+      dockerfile: Dockerfile
     ports:
-      - 8000:8000
+      - "8000:8000"
     volumes:
       - ./:/usr/src/app
-    # env_file:
-    #     - ./.env
     environment:
-      - DATABASE_HOSTNAME=postgres
-      - DATABASE_PORT=5432
-      - DATABASE_PASSWORD=password123
-      - DATABASE_NAME=fastapi
-      - DATABASE_USERNAME=postgres
-      - SECRET_KEY=09d25e094faa6ca2556c818166b7a9563b93f7099f6f0f4caa6cf63b88e8d3e7
-      - ALGORITHM=HS256
-      - ACCESS_TOKEN_EXPIRE_MINUTES=30
-      - PATH=/usr/local/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin:/root/.cargo/bin
+      DATABASE_HOSTNAME: postgres
+      DATABASE_PORT: 5432
+      DATABASE_PASSWORD: password123
+      DATABASE_NAME: fastapi
+      DATABASE_USERNAME: postgres
+      SECRET_KEY: replace-this-in-production
+      ALGORITHM: HS256
+      ACCESS_TOKEN_EXPIRE_MINUTES: 30
     command: uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload
     depends_on:
-      - postgres
+      postgres:
+        condition: service_healthy
 
   postgres:
+    image: postgres:16-alpine
     ports:
-      - 5430:5432
-    image: postgres
+      - "5430:5432"
     environment:
-      - POSTGRES_PASSWORD=password123
-      - POSTGRES_DB=fastapi
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: password123
+      POSTGRES_DB: fastapi
     volumes:
       - postgres-db:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d fastapi"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
 
 volumes:
   postgres-db:

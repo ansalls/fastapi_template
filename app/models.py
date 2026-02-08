@@ -3,7 +3,7 @@ from sqlalchemy.orm import relationship
 from sqlalchemy.sql.expression import text
 from sqlalchemy.sql.sqltypes import TIMESTAMP
 
-from .database import Base, engine
+from .database import Base
 
 class Post(Base):
     __tablename__ = "posts"
@@ -51,5 +51,3 @@ class Vote(Base):
         ForeignKey("posts.id", ondelete="CASCADE"), 
         primary_key=True
         )
-
-Base.metadata.create_all(bind=engine)

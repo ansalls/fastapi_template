@@ -1,0 +1,86 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>FastAPI Template UI</title>
+    <link rel="stylesheet" href="/static/styles.css" />
+  </head>
+  <body>
+    <main class="page">
+      <header class="hero">
+        <p class="eyebrow">FastAPI + Postgres + Auth</p>
+        <h1>Template Control Panel</h1>
+        <p class="lead">
+          Lightweight starter UI to validate auth and posts endpoints from a browser.
+        </p>
+        <div class="links">
+          <a href="/docs" target="_blank" rel="noopener noreferrer">Open API Docs</a>
+          <a href="/redoc" target="_blank" rel="noopener noreferrer">Open ReDoc</a>
+          <a href="/health" target="_blank" rel="noopener noreferrer">Health Check</a>
+        </div>
+      </header>
+
+      <section class="card">
+        <h2>1. Create User</h2>
+        <form id="register-form">
+          <label>
+            Email
+            <input id="register-email" type="email" required />
+          </label>
+          <label>
+            Password
+            <input id="register-password" type="password" required minlength="8" />
+          </label>
+          <button type="submit">Register</button>
+        </form>
+      </section>
+
+      <section class="card">
+        <h2>2. Login</h2>
+        <form id="login-form">
+          <label>
+            Email
+            <input id="login-email" type="email" required />
+          </label>
+          <label>
+            Password
+            <input id="login-password" type="password" required />
+          </label>
+          <button type="submit">Login</button>
+        </form>
+        <p class="token-label">Access Token</p>
+        <textarea id="token-output" readonly placeholder="Login to generate token"></textarea>
+      </section>
+
+      <section class="card">
+        <h2>3. Create Post</h2>
+        <form id="post-form">
+          <label>
+            Title
+            <input id="post-title" type="text" required />
+          </label>
+          <label>
+            Content
+            <textarea id="post-content" rows="4" required></textarea>
+          </label>
+          <button type="submit">Create Post</button>
+        </form>
+      </section>
+
+      <section class="card">
+        <div class="card-head">
+          <h2>4. Your Feed</h2>
+          <button id="refresh-posts" type="button">Refresh</button>
+        </div>
+        <ul id="post-list"></ul>
+      </section>
+
+      <section class="card">
+        <h2>Event Log</h2>
+        <pre id="log"></pre>
+      </section>
+    </main>
+    <script src="/static/app.js"></script>
+  </body>
+</html>
