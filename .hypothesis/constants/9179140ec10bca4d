@@ -1,0 +1,4 @@
+# file: /Users/tony/Desktop/Code/Projects/fastapi_template/app/domains/task_tracking/models.py
+# hypothesis_version: 6.141.1
+
+['CASCADE', 'TaskItem', 'TaskProject', 'all, delete-orphan', 'medium', 'now()', 'project', 'task_items', 'task_projects', 'task_projects.id', 'tasks', 'todo', 'users.id']

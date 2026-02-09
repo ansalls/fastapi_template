@@ -1,0 +1,4 @@
+# file: /Users/tony/Desktop/Code/Projects/fastapi_template/app/domains/task_tracking/router.py
+# hypothesis_version: 6.141.1
+
+['/projects', '/task-tracking', '/tasks/summary', '/tasks/{task_id}', 'Task Tracking', 'Task does not exist', 'api_read', 'api_write', 'blocked', 'done', 'in_progress', 'owner_id', 'project_id', 'status', 'task.created', 'task.deleted', 'task.updated', 'task_id', 'task_project.created', 'todo']

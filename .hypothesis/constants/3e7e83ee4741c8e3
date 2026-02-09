@@ -1,0 +1,4 @@
+# file: /Users/tony/Desktop/Code/Projects/fastapi_template/app/domains/task_tracking/schemas.py
+# hypothesis_version: 6.141.1
+
+[120, 200, 1000, 5000, 'blocked', 'done', 'high', 'in_progress', 'low', 'medium', 'todo', 'urgent']

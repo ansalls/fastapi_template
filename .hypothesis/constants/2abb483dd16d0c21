@@ -1,0 +1,4 @@
+# file: /Users/tony/Desktop/Code/Projects/fastapi_template/app/main.py
+# hypothesis_version: 6.141.1
+
+[503, '*', '/', '/api/', '/auth/logout', '/auth/oauth/', '/auth/refresh', '/docs', '/health', '/login', '/openapi.json', '/ready', '/redoc', '/static', 'Cache-Control', 'DENY', 'Permissions-Policy', 'Pragma', 'Referrer-Policy', 'X-API-Version', 'X-Frame-Options', '__path__', 'api', 'app.domains', 'checks', 'detail', 'error_code', 'frontend', 'http', 'https', 'index.html', 'message', 'no-cache', 'no-referrer', 'no-store', 'none', 'nosniff', 'ok', 'router', 'same-origin', 'service_not_ready', 'static', 'status', 'true', 'x-api-version']

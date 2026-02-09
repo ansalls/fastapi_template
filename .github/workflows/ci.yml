@@ -32,6 +32,39 @@ jobs:
 
   unit-tests:
     runs-on: ubuntu-latest
+    env:
+      DATABASE_HOSTNAME: localhost
+      DATABASE_PORT: 5432
+      DATABASE_PASSWORD: password123
+      DATABASE_NAME: fastapi
+      DATABASE_USERNAME: postgres
+      REDIS_URL: redis://localhost:6379/0
+      SECRET_KEY: test-secret-key
+      ALGORITHM: HS256
+      ACCESS_TOKEN_EXPIRE_MINUTES: 30
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: password123
+          POSTGRES_DB: fastapi_test
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres -d fastapi_test"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+      redis:
+        image: redis:7-alpine
+        ports:
+          - 6379:6379
+        options: >-
+          --health-cmd "redis-cli ping || exit 1"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -58,6 +91,7 @@ jobs:
       DATABASE_PASSWORD: password123
       DATABASE_NAME: fastapi
       DATABASE_USERNAME: postgres
+      REDIS_URL: redis://localhost:6379/0
       SECRET_KEY: test-secret-key
       ALGORITHM: HS256
       ACCESS_TOKEN_EXPIRE_MINUTES: 30
@@ -72,6 +106,15 @@ jobs:
           - 5432:5432
         options: >-
           --health-cmd "pg_isready -U postgres -d fastapi_test"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+      redis:
+        image: redis:7-alpine
+        ports:
+          - 6379:6379
+        options: >-
+          --health-cmd "redis-cli ping || exit 1"
           --health-interval 10s
           --health-timeout 5s
           --health-retries 5
@@ -101,6 +144,7 @@ jobs:
       DATABASE_PASSWORD: password123
       DATABASE_NAME: fastapi
       DATABASE_USERNAME: postgres
+      REDIS_URL: redis://localhost:6379/0
       SECRET_KEY: test-secret-key
       ALGORITHM: HS256
       ACCESS_TOKEN_EXPIRE_MINUTES: 30
@@ -115,6 +159,15 @@ jobs:
           - 5432:5432
         options: >-
           --health-cmd "pg_isready -U postgres -d fastapi_test"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+      redis:
+        image: redis:7-alpine
+        ports:
+          - 6379:6379
+        options: >-
+          --health-cmd "redis-cli ping || exit 1"
           --health-interval 10s
           --health-timeout 5s
           --health-retries 5
@@ -145,6 +198,7 @@ jobs:
       DATABASE_PASSWORD: password123
       DATABASE_NAME: fastapi
       DATABASE_USERNAME: postgres
+      REDIS_URL: redis://localhost:6379/0
       SECRET_KEY: test-secret-key
       ALGORITHM: HS256
       ACCESS_TOKEN_EXPIRE_MINUTES: 30
@@ -159,6 +213,15 @@ jobs:
           - 5432:5432
         options: >-
           --health-cmd "pg_isready -U postgres -d fastapi_test"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+      redis:
+        image: redis:7-alpine
+        ports:
+          - 6379:6379
+        options: >-
+          --health-cmd "redis-cli ping || exit 1"
           --health-interval 10s
           --health-timeout 5s
           --health-retries 5

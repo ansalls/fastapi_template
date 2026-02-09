@@ -83,7 +83,7 @@ async def api_version_middleware(request: Request, call_next):
     version, defaulted = _resolve_api_version(
         request.url.path, request.headers.get("x-api-version")
     )
-    request.state.api_version = version
+    setattr(request.state, "api_version", version)
     response = await call_next(request)
     response.headers["X-API-Version"] = version
     if defaulted:
