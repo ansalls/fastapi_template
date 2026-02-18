@@ -70,3 +70,11 @@ Run all of:
 - `make test`
 
 Do not conclude work until all pass, or explicitly report blockers.
+
+## 9) MCP Extension Changes
+
+When adding MCP-facing capabilities:
+- Place MCP implementation under `app/domains/<domain>/` (for this repo: `app/domains/mcp_server/`).
+- Keep tool registration grouped by capability scopes so new routers can be mapped without editing core platform files.
+- Ensure API client wrappers normalize downstream failures to RFC 7807-like error documents.
+- Document standalone runtime scripts and required environment variables.

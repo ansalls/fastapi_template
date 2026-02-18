@@ -57,3 +57,6 @@ tests_dir = [
 ]
 do_not_mutate = ["*/__init__.py"]
 also_copy = ["app"]
+
+[project.scripts]
+fastapi-template-mcp = "app.domains.mcp_server.cli:main"
