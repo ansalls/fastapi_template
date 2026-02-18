@@ -144,3 +144,25 @@ Kubernetes examples:
 - Architecture: `ARCHITECTURE.md`
 - AI checklist: `AI_CHANGE_CHECKLIST.md`
 - AI agent instructions: `AGENTS.md`
+
+## MCP Server Extension (Standalone)
+
+A new extension package is available at `app/domains/mcp_server/` to expose template API capabilities as MCP-style tools/resources without modifying platform core files.
+
+Run standalone MCP server:
+
+```bash
+fastapi-template-mcp
+```
+
+Environment variables (prefix `MCP_SERVER_`):
+- `MCP_SERVER_HOST`
+- `MCP_SERVER_PORT`
+- `MCP_SERVER_BASE_URL`
+- `MCP_SERVER_AUTH_MODE` (`none` or `bearer`)
+- `MCP_SERVER_TIMEOUT_SECONDS`
+- `MCP_SERVER_ALLOWED_TOOL_SCOPES` (CSV list, e.g. `auth,users,posts,vote`)
+
+Default tool groups are mapped from current `/api/v1` endpoints using existing router capability tags (`Authentication`, `Users`, `Post`, `Vote`).
+
+MCP interactions are logged with per-action IDs and session IDs to support traceability for debugging and security reviews.

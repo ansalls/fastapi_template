@@ -301,3 +301,16 @@ Worker scaffold:
 - `property`: property-based invariants
 
 Coverage is enforced at 100% line + branch for all modules under `app/`.
+
+## MCP Extension Domain
+
+- Package: `app/domains/mcp_server/`
+- Purpose: expose grouped MCP tools/resources (`auth`, `users`, `posts`, `vote`) mapped to existing `/api/v1/*` routes.
+- Standalone runtime: `fastapi-template-mcp` (script entrypoint in `pyproject.toml`) starts a dedicated FastAPI process that serves:
+  - `GET /mcp/tools`
+  - `GET /mcp/resources`
+  - `POST /mcp/tools/call`
+  - `GET /mcp/config`
+  - `GET /mcp/health`
+- API calls are delegated through a typed async HTTP client with normalized problem-document errors compatible with RFC 7807-like payloads.
+- MCP tool execution logging includes action-level IDs, session IDs, source metadata, and outbound API call logs for audit/debug timelines.
